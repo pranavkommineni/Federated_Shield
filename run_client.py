@@ -7,9 +7,11 @@ import torch
 from torch.utils.data import DataLoader, TensorDataset
 import flwr as fl
 
-core_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'team-a-ai-core'))
-if core_path not in sys.path:
-    sys.path.insert(0, core_path)
+base_dir = os.path.dirname(os.path.abspath(__file__))
+for candidate in ['ai-core', 'team-a-ai-core', 'ai_core']:
+    p = os.path.join(base_dir, candidate)
+    if os.path.isdir(p) and p not in sys.path:
+        sys.path.insert(0, p)
 
 from model.model_config import FLConfig
 from model.federix_model import create_model
