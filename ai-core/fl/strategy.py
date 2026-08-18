@@ -91,20 +91,29 @@ def _try_import_secure_aggregation():
     """Attempt to import Team 2's secure aggregation module."""
     try:
         base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-        privacy_path = os.path.join(base_dir, 'Privacy-Security')
-        if os.path.exists(privacy_path) and privacy_path not in sys.path:
-            sys.path.insert(0, privacy_path)
+        for p_dir in ['privacy_security', 'Privacy-Security']:
+            p_path = os.path.join(base_dir, p_dir)
+            if os.path.exists(p_path) and p_path not in sys.path:
+                sys.path.insert(0, p_path)
 
-        from secure_aggregation import (
-            SecureAggregationProtocol,
-            SecureAggregationClient,
-            ModelUpdate,
-        )
-        from secure_aggregation.crypto.pairwise_mask import FIELD_PRIME, SCALE
-        return SecureAggregationProtocol, SecureAggregationClient, ModelUpdate, FIELD_PRIME, SCALE
-    except ImportError as e:
-        logger.error(f"Secure aggregation module not available: {e}")
+        try:
+            from privacy_security.secure_aggregation.server import SecureAggregationProtocol
+            from privacy_security.secure_aggregation.client import SecureAggregationClient
+            from privacy_security.secure_aggregation.protocol import ModelUpdate
+            from privacy_security.secure_aggregation.crypto.pairwise_mask import FIELD_PRIME, SCALE
+            return SecureAggregationProtocol, SecureAggregationClient, ModelUpdate, FIELD_PRIME, SCALE
+        except ImportError:
+            from secure_aggregation import (
+                SecureAggregationProtocol,
+                SecureAggregationClient,
+                ModelUpdate,
+            )
+            from secure_aggregation.crypto.pairwise_mask import FIELD_PRIME, SCALE
+            return SecureAggregationProtocol, SecureAggregationClient, ModelUpdate, FIELD_PRIME, SCALE
+    except Exception as e:
+        logger.warning(f"Secure aggregation import fallback: {e}")
         return None
+
 
 
 class SecureFederixStrategy(FederixStrategy):

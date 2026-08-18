@@ -2,10 +2,18 @@
 import logging
 import torch
 from torch.utils.data import DataLoader, Dataset, Subset
-import torchvision
-import torchvision.transforms as transforms
 
 logger = logging.getLogger(__name__)
+
+
+HAS_TORCHVISION = False
+try:
+    import torchvision
+    import torchvision.transforms as transforms
+    HAS_TORCHVISION = True
+except Exception as e_tv:
+    logger.warning(f"torchvision C++ extensions unavailable: {e_tv}")
+
 
 def load_cifar10(data_dir: str = "./data") -> tuple[Dataset, Dataset]:
     """
@@ -17,7 +25,11 @@ def load_cifar10(data_dir: str = "./data") -> tuple[Dataset, Dataset]:
     Returns:
         Tuple of (train_dataset, test_dataset).
     """
+    if not HAS_TORCHVISION:
+        raise RuntimeError("torchvision is not available or its C++ binary extension failed to load.")
+
     transform = transforms.Compose([
+
         transforms.ToTensor(),
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2470, 0.2435, 0.2616)),
     ])

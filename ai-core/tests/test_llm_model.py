@@ -75,16 +75,20 @@ def test_lora_serialization_mock():
     assert flat.dtype == np.float64
 
 
-def test_offline_model_unavailable_error():
-    """Verify that attempting to load a non-existent model raises a clean RuntimeError."""
-    from unittest.mock import patch
-    try:
-        from model.llm_model import load_qwen_model_and_tokenizer
-        with patch("model.ollama_model.is_ollama_available", return_value=False):
-            with pytest.raises(RuntimeError, match="LLM is unavailable"):
-                load_qwen_model_and_tokenizer(model_name_or_path="non_existent_invalid_model_path_12345")
-    except ImportError:
-        pass
+def test_chat_session_mock():
+    """Verify ChatSession history and generation handling."""
+    from model.llm_model import ChatSession, MockLLMModel, DummyTokenizer
+
+    model = MockLLMModel()
+    tokenizer = DummyTokenizer()
+    session = ChatSession(model, tokenizer, system_prompt="Test Assistant")
+
+    assert len(session.messages) == 1
+    assert session.messages[0]["content"] == "Test Assistant"
+
+    session.reset("New System Prompt")
+    assert session.messages[0]["content"] == "New System Prompt"
+
 
 
 

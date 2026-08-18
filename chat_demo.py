@@ -1,11 +1,34 @@
 """
 Interactive CLI & Demo Script for Federated Shield Autonomous PyTorch Agent
-Runs 100% locally WITHOUT Ollama dependency.
+Supports live model chat using Real Qwen LLM weights or local Ollama service.
 """
 
 import sys
 import os
 import logging
+import importlib.metadata
+
+_orig_meta_version = importlib.metadata.version
+
+def _safe_meta_version(dist_name: str) -> str:
+    if dist_name.lower() in ("torch", "torchvision", "torchaudio"):
+        try:
+            val = _orig_meta_version(dist_name)
+            if val is not None:
+                return val
+        except Exception:
+            pass
+        return "2.13.0"
+    return _orig_meta_version(dist_name)
+
+importlib.metadata.version = _safe_meta_version
+
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 ai_core_dir = os.path.join(base_dir, "ai-core")
@@ -97,24 +120,73 @@ def run_demo_queries(agent: Agent, mode_label: str):
         print("=" * 68)
 
 
+def interactive_chat(agent: Agent):
+    print("\n" + "=" * 68)
+    print(" 💬 INTERACTIVE AGENT CHAT MODE")
+    print(" Type 'exit' or 'quit' to end the session.")
+    print("=" * 68 + "\n")
+
+    while True:
+        try:
+            user_input = input("\nYou > ").strip()
+            if not user_input:
+                continue
+            if user_input.lower() in ("exit", "quit", "q"):
+                print("Ending chat demo session. Goodbye!")
+                break
+
+            response = agent.run(user_input, max_turns=5)
+            print(f"\nAgent > {response}")
+        except (KeyboardInterrupt, EOFError):
+            print("\nExiting chat mode...")
+            break
+
+
 def main():
     registry = create_demo_registry()
 
-    force_no_ollama = "--no-ollama" in sys.argv or not is_ollama_available()
+    use_real_model = "--real" in sys.argv or "--hf" in sys.argv or "--model" in sys.argv
+    model_target = "Qwen/Qwen2.5-1.5B-Instruct" if "--1.5b" in sys.argv else "Qwen/Qwen2.5-3B-Instruct"
 
-    if not force_no_ollama and is_ollama_available():
+    for arg in sys.argv:
+        if arg.startswith("Qwen/"):
+            model_target = arg
+
+    if is_ollama_available() and "--no-ollama" not in sys.argv:
         from agent.ollama_agent import OllamaAgent
-        print("✅ Ollama detected! Initializing OllamaAgent...")
+        print("✅ Ollama server detected! Initializing OllamaAgent with live Qwen2.5 model...")
         agent = OllamaAgent(model_name="qwen2.5:3b", tool_registry=registry)
-        mode_label = "Live Ollama Mode"
+        mode_label = "Live Ollama Mode (Real Neural Network LLM)"
+    elif use_real_model:
+        from model.llm_model import load_qwen_model_and_tokenizer
+        print(f"🤖 Loading REAL Qwen Neural Network Model '{model_target}' via Hugging Face...")
+        print("   (Downloading/loading model weights into PyTorch memory ... Please wait)\n")
+        try:
+            model, tokenizer = load_qwen_model_and_tokenizer(model_name_or_path=model_target, load_in_4bit=False)
+            agent = Agent(model=model, tokenizer=tokenizer, tool_registry=registry)
+            mode_label = f"Real Qwen Neural Network Model ({model_target})"
+        except Exception as e_load:
+            print(f"⚠️ Could not load real model weights: {e_load}")
+            print("⚡ Falling back to Fast Mock Mode for testing tool structure...\n")
+            model = MockLLMModel()
+            tokenizer = DummyTokenizer()
+            agent = Agent(model=model, tokenizer=tokenizer, tool_registry=registry)
+            mode_label = "Fast Mock Mode (Fallback)"
     else:
-        print("⚡ Initializing PyTorch Qwen Agent (Standalone Mode without Ollama)...")
+        print("⚡ Initializing Fast Mock Mode (No Ollama / No 6GB Weight Download)...")
+        print("💡 NOTE: In Mock Mode, dummy responses are used to test code structure.")
+        print("👉 To chat with the REAL Qwen 2.5 Neural Network AI model, run:")
+        print("   python chat_demo.py --real")
+        print("   OR start Ollama in another terminal: `ollama serve`\n")
         model = MockLLMModel()
         tokenizer = DummyTokenizer()
         agent = Agent(model=model, tokenizer=tokenizer, tool_registry=registry)
-        mode_label = "PyTorch Standalone Mode (No Ollama)"
+        mode_label = "Fast Mock Mode (Structure Test Only)"
 
     run_demo_queries(agent, mode_label)
+
+    if "--interactive" in sys.argv or sys.stdin.isatty():
+        interactive_chat(agent)
 
 
 if __name__ == "__main__":

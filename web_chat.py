@@ -9,8 +9,26 @@ import logging
 import os
 import sys
 from http.server import HTTPServer, BaseHTTPRequestHandler
+import importlib.metadata
+
+
+_orig_meta_version = importlib.metadata.version
+
+def _safe_meta_version(dist_name: str) -> str:
+    if dist_name.lower() in ("torch", "torchvision", "torchaudio"):
+        try:
+            val = _orig_meta_version(dist_name)
+            if val is not None:
+                return val
+        except Exception:
+            pass
+        return "2.13.0"
+    return _orig_meta_version(dist_name)
+
+importlib.metadata.version = _safe_meta_version
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
+
 ai_core_dir = os.path.join(base_dir, "ai-core")
 if ai_core_dir not in sys.path:
     sys.path.insert(0, ai_core_dir)

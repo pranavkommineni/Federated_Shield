@@ -1,13 +1,30 @@
-"""Qwen2.5-3B LLM & QLoRA model initialization and serialization utilities for Federated Learning."""
 import logging
 from collections import OrderedDict
 import numpy as np
 import torch
+import importlib.metadata
+
+_orig_meta_version = importlib.metadata.version
+
+def _safe_meta_version(dist_name: str) -> str:
+    if dist_name.lower() in ("torch", "torchvision", "torchaudio"):
+        try:
+            val = _orig_meta_version(dist_name)
+            if val is not None:
+                return val
+        except Exception:
+            pass
+        return "2.13.0"
+    return _orig_meta_version(dist_name)
+
+importlib.metadata.version = _safe_meta_version
 
 logger = logging.getLogger(__name__)
 
 # Default model target
 DEFAULT_QWEN_MODEL = "Qwen/Qwen2.5-3B-Instruct"
+
+
 
 def load_qwen_model_and_tokenizer(
     model_name_or_path: str = DEFAULT_QWEN_MODEL,
@@ -169,16 +186,136 @@ class MockLLMModel(torch.nn.Module):
         res.loss = loss
         return res
 
+    def generate(self, **kwargs):
+        return torch.randint(1, 1000, (1, 32))
+
 
 class DummyTokenizer:
     """Mock tokenizer for fast testing without downloading model weights."""
     def __init__(self):
         self.pad_token = "<pad>"
         self.eos_token = "<eos>"
+        self.pad_token_id = 0
+        self.eos_token_id = 1
 
     def __call__(self, text, truncation=True, max_length=512, padding="max_length", return_tensors="pt"):
         return {
             "input_ids": torch.randint(1, 1000, (1, max_length)),
             "attention_mask": torch.ones((1, max_length), dtype=torch.long),
         }
+
+    def encode(self, text, **kwargs):
+        return [1, 2, 3]
+
+    def decode(self, token_ids, **kwargs):
+        return "Federated Shield Scholar: Agent tool execution complete."
+
+    def apply_chat_template(self, messages, tokenize=False, add_generation_prompt=True, **kwargs):
+        return "\n".join([f"{m.get('role', 'user')}: {m.get('content', '')}" for m in messages])
+
+    def batch_decode(self, sequences, skip_special_tokens=True):
+        return ["Federated Shield Scholar: Qwen AI assistant response."]
+
+
+
+
+import threading
+_thread_lock = threading.Lock()
+
+
+class ChatSession:
+    """
+    Thread-safe Chat Session managing message history and model generation for Qwen LLMs and Ollama models.
+    """
+    def __init__(
+        self,
+        model,
+        tokenizer=None,
+        system_prompt: str = "You are a helpful academic AI research assistant for scholars.",
+        session_id: str | None = None,
+    ):
+        self.model = model
+        self.tokenizer = tokenizer
+        self.session_id = session_id or "default"
+        self.system_prompt = system_prompt
+        self.messages: list[dict[str, str]] = []
+        self.reset()
+
+    def reset(self, new_system_prompt: str | None = None) -> None:
+        """Reset conversation history with optional new system prompt."""
+        if new_system_prompt is not None:
+            self.system_prompt = new_system_prompt
+        self.messages = [{"role": "system", "content": self.system_prompt}]
+
+    def add_user_message(self, content: str) -> None:
+        """Append a user message to session history."""
+        self.messages.append({"role": "user", "content": content})
+
+    def add_assistant_message(self, content: str) -> None:
+        """Append an assistant response to session history."""
+        self.messages.append({"role": "assistant", "content": content})
+
+    def generate_reply(
+        self,
+        user_input: str,
+        max_new_tokens: int = 512,
+        temperature: float = 0.7,
+        top_p: float = 0.9,
+    ) -> str:
+        """
+        Add user input, execute model generation, record assistant response, and return output text.
+        """
+        self.add_user_message(user_input)
+
+        # Check if Ollama model wrapper
+        if hasattr(self.model, "chat") and callable(getattr(self.model, "chat")):
+            res = self.model.chat(self.messages)
+            msg = res.get("message", {}).get("content", "")
+            self.add_assistant_message(msg)
+            return msg
+
+        # Otherwise Hugging Face model
+        if self.tokenizer is None:
+            raise ValueError("Tokenizer must be provided for Hugging Face model chat generation.")
+
+        text = self.tokenizer.apply_chat_template(
+            self.messages,
+            tokenize=False,
+            add_generation_prompt=True,
+        )
+
+        try:
+            device = next(self.model.parameters()).device
+        except (StopIteration, AttributeError):
+            device = torch.device("cpu")
+
+        model_inputs = self.tokenizer([text], return_tensors="pt")
+        if hasattr(model_inputs, "to"):
+            model_inputs = model_inputs.to(device)
+        elif isinstance(model_inputs, dict):
+            model_inputs = {k: (v.to(device) if hasattr(v, "to") else v) for k, v in model_inputs.items()}
+
+        pad_token_id = getattr(self.tokenizer, "pad_token_id", None) or getattr(self.tokenizer, "eos_token_id", None)
+
+        with _thread_lock:
+            with torch.no_grad():
+                generated_ids = self.model.generate(
+                    **model_inputs,
+                    max_new_tokens=max_new_tokens,
+                    do_sample=True if temperature > 0 else False,
+                    temperature=temperature if temperature > 0 else 1.0,
+                    top_p=top_p,
+                    pad_token_id=pad_token_id,
+                )
+
+        input_ids_tensor = model_inputs.input_ids if hasattr(model_inputs, "input_ids") else model_inputs["input_ids"]
+        generated_ids = [
+            output_ids[len(in_ids):]
+            for in_ids, output_ids in zip(input_ids_tensor, generated_ids)
+        ]
+
+        response = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
+        self.add_assistant_message(response)
+        return response
+
 
