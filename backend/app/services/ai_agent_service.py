@@ -160,11 +160,35 @@ class AIAgentService:
                 if response_text and len(response_text.strip()) > 0:
                     return self._format_response(response_text, org_name, source=self._source)
             except Exception as e:
-                logger.warning(f"Agent query error: {e}")
+                logger.warning(f"Agent query error with {self._source}: {e}. Retrying with local PyTorch Qwen...")
+                self._agent = None
+                # Force local PyTorch load
+                try:
+                    from agent.agent_loop import Agent
+                    from transformers import AutoModelForCausalLM, AutoTokenizer
+                    import torch
+                    model_name = "Qwen/Qwen2.5-0.5B-Instruct"
+                    tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True, local_files_only=True)
+                    if tokenizer.pad_token is None:
+                        tokenizer.pad_token = tokenizer.eos_token
+                    model = AutoModelForCausalLM.from_pretrained(model_name, trust_remote_code=True, dtype=torch.float32, local_files_only=True)
+                    model.eval()
+                    self._agent = Agent(
+                        model=model,
+                        tokenizer=tokenizer,
+                        tool_registry=self._tool_registry,
+                        system_prompt="You are a helpful, conversational Clinical AI Assistant. Give concise, user-friendly, and natural answers.",
+                    )
+                    self._source = "qwen2.5_0.5b_local"
+                    response_text = self._agent.run(prompt, max_turns=3)
+                    if response_text and len(response_text.strip()) > 0:
+                        return self._format_response(response_text, org_name, source=self._source)
+                except Exception as e2:
+                    logger.error(f"Fallback to local Qwen failed: {e2}")
 
         # Last resort fallback
         return self._format_response(
-            f"I'm currently initializing. Please try again in a moment. (Error: model not loaded)",
+            f"I'm currently initializing. Please try again in a moment.",
             org_name,
             source="fallback",
         )
