@@ -83,23 +83,64 @@ def evaluate_agent_on_domains(
     return results
 
 
+def evaluate_ollama_agent_on_domains(
+    model_name: str = "qwen2.5:3b",
+) -> Dict[str, Any]:
+    """Evaluate OllamaAgent live against Ollama local service across domain prompts."""
+    from agent.ollama_agent import OllamaAgent
+    registry = create_eval_tool_registry()
+    agent = OllamaAgent(model_name=model_name, tool_registry=registry)
+
+    results = {}
+    for org_key, domain_info in ORG_DOMAINS.items():
+        domain_name = domain_info["name"]
+        prompts = domain_info["data"]
+        successful_calls = 0
+
+        logger.info(f"Evaluating Ollama ('{model_name}') on domain '{domain_name}' ({len(prompts)} prompts)...")
+        for item in prompts:
+            prompt = item["prompt"]
+            agent.memory.clear()
+            output = agent.run(prompt, max_turns=2)
+            
+            if len(agent.memory.get_messages()) > 2 or "tool" in [m.get("role") for m in agent.memory.get_messages()]:
+                successful_calls += 1
+
+        acc = (successful_calls / len(prompts)) * 100.0
+        results[org_key] = {
+            "name": domain_name,
+            "total": len(prompts),
+            "tool_calls_triggered": successful_calls,
+            "accuracy": acc,
+        }
+        logger.info(f"Domain '{domain_name}' (Ollama): Tool-Call Accuracy = {acc:.1f}%")
+
+    return results
+
+
 def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s")
 
     parser = argparse.ArgumentParser(description="Evaluate Decoupled Agent Tool-Calling")
-    parser.add_argument("--mock", action="store_true", default=True, help="Use mock linear model for fast test evaluation")
+    parser.add_argument("--mock", action="store_true", help="Use mock linear model for fast test evaluation")
+    parser.add_argument("--use-ollama", action="store_true", help="Evaluate live local Ollama qwen2.5:3b model")
+    parser.add_argument("--ollama-model", type=str, default="qwen2.5:3b", help="Ollama model tag")
     args = parser.parse_args()
 
-    if args.mock:
+    if args.use_ollama:
+        logger.info(f"Running live evaluation with local Ollama model '{args.ollama_model}'...")
+        results = evaluate_ollama_agent_on_domains(model_name=args.ollama_model)
+    elif args.mock:
         logger.info("Running evaluation with Mock LLM Model...")
         model = MockLLMModel()
         tokenizer = DummyTokenizer()
+        results = evaluate_agent_on_domains(model, tokenizer, mock_model=True)
     else:
         logger.info("Loading Qwen2.5-3B + LoRA model for evaluation...")
         base_model, tokenizer = load_qwen_model_and_tokenizer(load_in_4bit=True)
         model = apply_lora_to_model(base_model, r=8)
+        results = evaluate_agent_on_domains(model, tokenizer, mock_model=False)
 
-    results = evaluate_agent_on_domains(model, tokenizer, mock_model=args.mock)
     print("\n" + "=" * 50)
     print("      EVALUATION SUMMARY RESULTS")
     print("=" * 50)
