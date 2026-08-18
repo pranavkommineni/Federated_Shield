@@ -119,16 +119,49 @@ if USE_OLLAMA:
     )
     mode_status_text = "Ollama Local Model (qwen2.5:3b) Ready"
 else:
-    logger.info("Initializing PyTorch Agent (Standalone Mode without Ollama)...")
-    model = MockLLMModel()
-    tokenizer = DummyTokenizer()
-    agent = Agent(
-        model=model,
-        tokenizer=tokenizer,
-        tool_registry=registry,
-        system_prompt="You are the Federated Shield Autonomous PyTorch AI Agent."
-    )
-    mode_status_text = "PyTorch Qwen Standalone Engine (No Ollama) Ready"
+    logger.info("Ollama not available. Loading real Qwen2.5-0.5B-Instruct model via HuggingFace for local inference...")
+    try:
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+        import torch
+
+        _qwen_model_name = "Qwen/Qwen2.5-0.5B-Instruct"
+        logger.info(f"Loading tokenizer for {_qwen_model_name}...")
+        _tokenizer = AutoTokenizer.from_pretrained(_qwen_model_name, trust_remote_code=True)
+        if _tokenizer.pad_token is None:
+            _tokenizer.pad_token = _tokenizer.eos_token
+
+        logger.info(f"Loading model weights for {_qwen_model_name} (CPU, float32)...")
+        _model = AutoModelForCausalLM.from_pretrained(
+            _qwen_model_name,
+            trust_remote_code=True,
+            dtype=torch.float32,
+        )
+        _model.eval()
+        logger.info(f"Qwen2.5-0.5B-Instruct loaded successfully for local inference.")
+
+        agent = Agent(
+            model=_model,
+            tokenizer=_tokenizer,
+            tool_registry=registry,
+            system_prompt=(
+                "You are a helpful, knowledgeable, and versatile AI assistant. Answer any user question clearly, "
+                "naturally, and thoroughly across all topics and domains. Use your specialized tools when the user "
+                "requests Federated Learning operations, simulations, node statuses, privacy calculations, or math."
+            ),
+        )
+        mode_status_text = "Qwen2.5-0.5B (Local PyTorch) Ready"
+    except Exception as e:
+        logger.error(f"Failed to load Qwen model: {e}. Falling back to MockLLMModel.")
+        model = MockLLMModel()
+        tokenizer = DummyTokenizer()
+        agent = Agent(
+            model=model,
+            tokenizer=tokenizer,
+            tool_registry=registry,
+            system_prompt="You are the Federated Shield Autonomous PyTorch AI Agent."
+        )
+        mode_status_text = "PyTorch Mock Engine (Model Load Failed)"
+
 
 
 HTML_CONTENT = f"""<!DOCTYPE html>

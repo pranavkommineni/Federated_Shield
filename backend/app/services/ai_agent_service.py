@@ -82,16 +82,19 @@ def get_fl_tool_registry():
 
 
 class AIAgentService:
-    """Service wrapping local ai-core Ollama Agent with natural conversational fallback."""
+    """Service wrapping local ai-core Agent with real LLM inference."""
 
     def __init__(self):
         self._agent = None
         self._tool_registry = get_fl_tool_registry()
+        self._source = "initializing"
 
-    def _get_or_init_ollama_agent(self) -> Optional[Any]:
-        if not OllamaAgent:
-            return None
-        if self._agent is None:
+    def _get_or_init_agent(self) -> Optional[Any]:
+        if self._agent is not None:
+            return self._agent
+
+        # 1. Try Ollama Agent first
+        if OllamaAgent:
             try:
                 if is_ollama_available():
                     self._agent = OllamaAgent(
@@ -99,13 +102,48 @@ class AIAgentService:
                         tool_registry=self._tool_registry,
                         system_prompt=(
                             "You are a helpful, conversational Clinical AI Assistant. "
-                            "Give concise, user-friendly, and natural answers without emojis or robotic jargon. "
+                            "Give concise, user-friendly, and natural answers. "
                             "Use available tools when clinical or privacy calculations are needed."
                         ),
                     )
+                    self._source = "ollama_qwen2.5"
+                    logger.info("Backend AI Agent: Using Ollama qwen2.5:3b")
+                    return self._agent
             except Exception as e:
-                logger.warning(f"Ollama agent initialization skipped: {e}")
-        return self._agent
+                logger.warning(f"Ollama agent initialization failed: {e}")
+
+        # 2. Fall back to real Qwen2.5-0.5B via HuggingFace
+        try:
+            from agent.agent_loop import Agent
+            from transformers import AutoModelForCausalLM, AutoTokenizer
+            import torch
+
+            model_name = "Qwen/Qwen2.5-0.5B-Instruct"
+            logger.info(f"Backend AI Agent: Loading {model_name} via HuggingFace...")
+            tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+            if tokenizer.pad_token is None:
+                tokenizer.pad_token = tokenizer.eos_token
+            model = AutoModelForCausalLM.from_pretrained(
+                model_name, trust_remote_code=True, dtype=torch.float32,
+            )
+            model.eval()
+            self._agent = Agent(
+                model=model,
+                tokenizer=tokenizer,
+                tool_registry=self._tool_registry,
+                system_prompt=(
+                    "You are a helpful, conversational Clinical AI Assistant. "
+                    "Give concise, user-friendly, and natural answers. "
+                    "Use available tools when clinical or privacy calculations are needed."
+                ),
+            )
+            self._source = "qwen2.5_0.5b_local"
+            logger.info("Backend AI Agent: Using Qwen2.5-0.5B-Instruct (local PyTorch)")
+            return self._agent
+        except Exception as e:
+            logger.error(f"Failed to load Qwen model for backend: {e}")
+            self._source = "unavailable"
+            return None
 
     def process_chat(
         self,
@@ -113,83 +151,24 @@ class AIAgentService:
         org_name: str = "AIIMS New Delhi (Cardiology)",
         user_name: str = "Dr. Priya Nair",
     ) -> Dict[str, Any]:
-        """
-        Process user query using ai-core:
-        1. If local Ollama Qwen2.5 model is running on port 11434, executes via OllamaAgent.
-        2. Else, runs natural conversational response engine.
-        """
-        agent = self._get_or_init_ollama_agent()
+        """Process user query using real LLM agent."""
+        agent = self._get_or_init_agent()
 
-        # 1. Try real Ollama Agent
         if agent is not None:
             try:
                 response_text = agent.run(prompt, max_turns=3)
                 if response_text and len(response_text.strip()) > 0:
-                    return self._format_response(response_text, org_name, source="ollama_qwen2.5")
+                    return self._format_response(response_text, org_name, source=self._source)
             except Exception as e:
-                logger.warning(f"Ollama agent query error: {e}. Falling back to dynamic engine.")
+                logger.warning(f"Agent query error: {e}")
 
-        # 2. Natural Conversational Fallback
-        response_text = self._natural_reasoning_engine(prompt, org_name, user_name)
-        return self._format_response(response_text, org_name, source="federated_shield_core")
-
-    def _natural_reasoning_engine(self, prompt: str, org_name: str, user_name: str) -> str:
-        """Natural, friendly responses without emojis or robotic clutter."""
-        query = prompt.lower().strip()
-
-        # Privacy
-        if any(w in query for w in ["differential privacy", "dp", "epsilon", "noise", "privacy", "protect", "safe"]):
-            return (
-                f"Your patient data is protected in two key ways:\n\n"
-                f"1. **Zero Data Movement:** Patient records never leave {org_name}.\n"
-                f"2. **Differential Privacy:** Mathematical Gaussian noise is added to model updates before sending them, making it impossible to reverse-engineer any individual patient's records."
-            )
-
-        # Risk & Clinical
-        if any(w in query for w in ["risk", "blood pressure", "cholesterol", "patient", "cardiac", "heart", "predict", "threshold"]):
-            if self._tool_registry and "predict_cardiac_risk" in self._tool_registry.tools:
-                res = self._tool_registry.execute_tool("predict_cardiac_risk", {"age": 55, "sys_bp": 145, "cholesterol": 230, "smoker": True})
-            else:
-                res = "Risk Score is 80.0% (High Risk). Recommended: Stress echocardiography and lifestyle consultation."
-            return (
-                f"Based on the global federated model:\n\n"
-                f"{res}\n\n"
-                f"Key risk thresholds: Systolic BP > 140 mmHg or Total Cholesterol > 220 mg/dL warrant closer monitoring."
-            )
-
-        # Node Status & Hardware
-        if any(w in query for w in ["node", "status", "server", "telemetry", "hardware", "samples"]):
-            return (
-                f"**{org_name} Node Status:**\n\n"
-                f"- Status: **Online & Synchronized**\n"
-                f"- Connected Edge Clients: **3 devices**\n"
-                f"- Local Sample Partition: **1,420 records**\n"
-                f"- Security: **Multi-Party Secure Aggregation Enabled**"
-            )
-
-        # Accuracy
-        if any(w in query for w in ["accuracy", "loss", "metric", "performance", "round", "train"]):
-            return (
-                f"The global federated model currently has **92.4% validation accuracy** with a loss of **0.318** across 5 completed training rounds."
-            )
-
-        # Greetings & Personal
-        if any(w in query for w in ["hello", "hi", "hey", "who are you", "my name is", "what can you do", "help"]):
-            return (
-                f"Hello {user_name}!\n\n"
-                f"I am your clinical AI assistant. You can ask me about:\n"
-                f"- Clinical guidelines and patient risk factors\n"
-                f"- How patient data stays private with Differential Privacy\n"
-                f"- Current global model accuracy and training round progress\n\n"
-                f"How can I help you today?"
-            )
-
-        # General friendly answer
-        return (
-            f"Thank you for your question. Based on the federated model trained across {org_name} and partner hospitals, "
-            f"I can help answer clinical queries, check edge node status, or explain our differential privacy protections. "
-            f"What would you like to explore?"
+        # Last resort fallback
+        return self._format_response(
+            f"I'm currently initializing. Please try again in a moment. (Error: model not loaded)",
+            org_name,
+            source="fallback",
         )
+
 
     def _format_response(self, content: str, org_name: str, source: str) -> Dict[str, Any]:
         zk_proof = "zk-" + "".join(random.choices("0123456789ABCDEF", k=8))
