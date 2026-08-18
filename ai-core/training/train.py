@@ -43,10 +43,23 @@ def train_local_model(
     train_loader: DataLoader,
     epochs: int = 1,
     learning_rate: float = 0.01,
+    optimizer_name: str = "sgd",
+    weight_decay: float = 0.0,
+    momentum: float = 0.0,
     device: torch.device | None = None,
 ) -> tuple[float, int]:
     """
     Train local PyTorch model for multiple epochs.
+
+    Args:
+        model: PyTorch model.
+        train_loader: Training DataLoader.
+        epochs: Number of local training epochs.
+        learning_rate: Optimizer learning rate.
+        optimizer_name: Optimizer choice ("sgd", "adam", "adamw").
+        weight_decay: L2 regularization parameter.
+        momentum: Momentum factor for SGD.
+        device: Torch computing device.
 
     Returns:
         Tuple of (average_loss, total_samples).
@@ -55,7 +68,15 @@ def train_local_model(
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     model.to(device)
-    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
+
+    opt_lower = optimizer_name.lower()
+    if opt_lower == "adam":
+        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+    elif opt_lower == "adamw":
+        optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+    else:
+        optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum, weight_decay=weight_decay)
+
     criterion = nn.CrossEntropyLoss()
 
     total_samples = 0
