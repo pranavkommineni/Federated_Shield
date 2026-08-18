@@ -1,0 +1,4 @@
+numpy>=1.26
+pytest>=8.0
+cryptography>=42.0
+pycryptodome>=3.20
