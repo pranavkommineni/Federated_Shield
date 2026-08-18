@@ -71,88 +71,88 @@ export const ManageUsers: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8">
-      {/* Back Button & Header */}
+    <div className="space-y-6 max-w-6xl">
+      {/* Header */}
       <div>
         <button
           onClick={() => navigate(`/org/${currentId}`)}
-          className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-purple-400 mb-4 transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs text-slate-600 hover:text-slate-900 mb-3 transition-colors font-medium"
         >
-          <ArrowLeft size={16} /> Back to Node Overview
+          <ArrowLeft size={14} /> Back to Overview
         </button>
 
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-card/80 border border-slate-800 rounded-2xl p-6">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/30 flex items-center justify-center">
-              <Users size={24} />
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white border border-slate-200/90 rounded-xl p-5 shadow-sm">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-lg bg-violet-50 border border-violet-100 flex items-center justify-center text-violet-600">
+              <Users size={20} />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-100">Manage End-Users & AI Chat Access</h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Authorized practitioners under <strong>{selectedOrgName || 'Hospital Alpha'}</strong>
+              <h2 className="text-base font-bold text-slate-900">Staff Management & AI Permissions</h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Authorized practitioners under <strong>{selectedOrgName || 'AIIMS New Delhi (Cardiology)'}</strong>
               </p>
             </div>
           </div>
 
           <button
             onClick={() => setShowInviteModal(true)}
-            className="btn-primary bg-purple-600 hover:bg-purple-500 text-slate-100 px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-glow-purple transition-all"
+            className="bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors shadow-sm"
           >
-            <UserPlus size={16} /> Invite / Add User
+            <UserPlus size={14} /> Add User
           </button>
         </div>
       </div>
 
       {/* Users Table */}
       <Card
-        title={`Registered Clinicians & Staff (${users.length})`}
+        title={`Registered Clinicians (${users.length})`}
         subtitle="Toggle AI chat permissions per user to control model usage"
         noPadding
       >
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-900/60 border-b border-slate-800 text-slate-400 uppercase font-mono">
+            <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-semibold text-[10px]">
               <tr>
-                <th className="p-4">Full Name</th>
-                <th className="p-4">Username</th>
-                <th className="p-4">Email</th>
-                <th className="p-4">Department</th>
-                <th className="p-4">Role</th>
-                <th className="p-4 text-center">AI Chat Access Status</th>
-                <th className="p-4 text-right">Action</th>
+                <th className="p-3.5">Full Name</th>
+                <th className="p-3.5">Username</th>
+                <th className="p-3.5">Email</th>
+                <th className="p-3.5">Department</th>
+                <th className="p-3.5">Role</th>
+                <th className="p-3.5 text-center">Chat Permission</th>
+                <th className="p-3.5 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 text-slate-300">
+            <tbody className="divide-y divide-slate-100 text-slate-700">
               {users.map((u) => (
-                <tr key={u.id} className="hover:bg-slate-800/30">
-                  <td className="p-4 font-bold text-slate-100">{u.fullName}</td>
-                  <td className="p-4 font-mono text-slate-400">{u.username}</td>
-                  <td className="p-4 text-slate-400">{u.email}</td>
-                  <td className="p-4">{u.department || 'General'}</td>
-                  <td className="p-4">
+                <tr key={u.id} className="hover:bg-slate-50/60">
+                  <td className="p-3.5 font-bold text-slate-900">{u.fullName}</td>
+                  <td className="p-3.5 font-mono text-slate-500">{u.username}</td>
+                  <td className="p-3.5 text-slate-500">{u.email}</td>
+                  <td className="p-3.5 text-slate-600">{u.department || 'General'}</td>
+                  <td className="p-3.5">
                     <StatusBadge status={u.role} />
                   </td>
-                  <td className="p-4 text-center">
+                  <td className="p-3.5 text-center">
                     {u.hasChatAccess ? (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                        <CheckCircle2 size={14} /> Enabled
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <CheckCircle2 size={12} /> Enabled
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">
-                        <XCircle size={14} /> Revoked
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                        <XCircle size={12} /> Revoked
                       </span>
                     )}
                   </td>
-                  <td className="p-4 text-right">
+                  <td className="p-3.5 text-right">
                     <button
                       onClick={() => handleToggleAccess(u)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                      className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors shadow-sm ${
                         u.hasChatAccess
-                          ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                          : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                          ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200'
+                          : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200'
                       }`}
                     >
-                      {u.hasChatAccess ? 'Revoke Access' : 'Grant Access'}
+                      {u.hasChatAccess ? 'Revoke' : 'Grant'}
                     </button>
                   </td>
                 </tr>
@@ -164,86 +164,86 @@ export const ManageUsers: React.FC = () => {
 
       {/* Modal: Invite User */}
       {showInviteModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-surface border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-slate-100 mb-1">Add Healthcare Clinician</h3>
-            <p className="text-xs text-slate-400 mb-4">
-              Register an end-user under {selectedOrgName || 'Hospital Alpha'}.
+        <div className="fixed inset-0 z-50 bg-slate-900/30 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-xl max-w-md w-full p-5 shadow-xl">
+            <h3 className="text-sm font-bold text-slate-900 mb-1">Add Healthcare Clinician</h3>
+            <p className="text-xs text-slate-500 mb-4">
+              Register an end-user under {selectedOrgName || 'AIIMS New Delhi (Cardiology)'}.
             </p>
 
             <form onSubmit={handleInviteSubmit} className="space-y-3 text-xs">
               <div>
-                <label className="text-slate-300 font-semibold block mb-1">Full Name *</label>
+                <label className="text-slate-700 font-semibold block mb-1">Full Name</label>
                 <input
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="e.g. Dr. Emily Watson"
+                  placeholder="e.g. Dr. Kavita Krishnan"
                   required
-                  className="w-full bg-surface-elevated border border-slate-700 rounded-xl px-3 py-2 text-slate-100 text-sm focus:outline-none focus:border-purple-400"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-900 focus:outline-none focus:border-violet-500 focus:bg-white"
                 />
               </div>
 
               <div>
-                <label className="text-slate-300 font-semibold block mb-1">Username *</label>
+                <label className="text-slate-700 font-semibold block mb-1">Username</label>
                 <input
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="e.g. emily_w"
+                  placeholder="e.g. dr_kavita"
                   required
-                  className="w-full bg-surface-elevated border border-slate-700 rounded-xl px-3 py-2 text-slate-100 text-sm focus:outline-none focus:border-purple-400"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-900 focus:outline-none focus:border-violet-500 focus:bg-white"
                 />
               </div>
 
               <div>
-                <label className="text-slate-300 font-semibold block mb-1">Email Address *</label>
+                <label className="text-slate-700 font-semibold block mb-1">Email Address</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="e.g. emily.watson@hospital.org"
+                  placeholder="e.g. kavita.krishnan@aiims.edu.in"
                   required
-                  className="w-full bg-surface-elevated border border-slate-700 rounded-xl px-3 py-2 text-slate-100 text-sm focus:outline-none focus:border-purple-400"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-900 focus:outline-none focus:border-violet-500 focus:bg-white"
                 />
               </div>
 
               <div>
-                <label className="text-slate-300 font-semibold block mb-1">Department / Clinical Role</label>
+                <label className="text-slate-700 font-semibold block mb-1">Department</label>
                 <input
                   type="text"
                   value={department}
                   onChange={(e) => setDepartment(e.target.value)}
                   placeholder="e.g. Pediatric Cardiology"
-                  className="w-full bg-surface-elevated border border-slate-700 rounded-xl px-3 py-2 text-slate-100 text-sm focus:outline-none focus:border-purple-400"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-900 focus:outline-none focus:border-violet-500 focus:bg-white"
                 />
               </div>
 
-              <div className="pt-2">
+              <div className="pt-1">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={grantChat}
                     onChange={(e) => setGrantChat(e.target.checked)}
-                    className="rounded accent-purple-500"
+                    className="rounded accent-violet-600"
                   />
-                  <span className="text-slate-200">Grant AI Model Chat Access Immediately</span>
+                  <span className="text-slate-700 font-medium">Enable AI Model Chat Access Immediately</span>
                 </label>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
                 <button
                   type="button"
                   onClick={() => setShowInviteModal(false)}
-                  className="px-4 py-2 rounded-xl font-semibold text-slate-400 hover:bg-slate-800"
+                  className="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="btn-primary bg-purple-600 hover:bg-purple-500 text-slate-100 px-5 py-2 rounded-xl font-bold shadow-glow-purple"
+                  className="bg-violet-600 hover:bg-violet-700 text-white px-4 py-1.5 rounded-lg text-xs font-semibold shadow-sm"
                 >
-                  Add User
+                  Save User
                 </button>
               </div>
             </form>

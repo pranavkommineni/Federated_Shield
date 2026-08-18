@@ -2,43 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ============================================================
-   GUARANTEED STYLES - These apply even if Tailwind JIT fails
-   ============================================================ */
-
+/* Clean, Crisp Light Mode Base */
 html, body, #root {
   min-height: 100vh;
   height: 100%;
-  background-color: #070b14;
-  color: #f1f5f9;
-  font-family: 'Inter', system-ui, sans-serif;
+  background-color: #f8fafc;
+  color: #0f172a;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   margin: 0;
   padding: 0;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Custom color utilities */
-.bg-background { background-color: #070b14; }
-.bg-surface { background-color: #0e1526; }
-.bg-surface\/90 { background-color: rgba(14, 21, 38, 0.9); }
-.bg-surface\/80 { background-color: rgba(14, 21, 38, 0.8); }
-.bg-surface\/70 { background-color: rgba(14, 21, 38, 0.7); }
-.bg-surface\/60 { background-color: rgba(14, 21, 38, 0.6); }
-.bg-surface\/30 { background-color: rgba(14, 21, 38, 0.3); }
-.bg-surface-elevated { background-color: #162038; }
-.bg-surface-elevated\/90 { background-color: rgba(22, 32, 56, 0.9); }
-.bg-surface-elevated\/60 { background-color: rgba(22, 32, 56, 0.6); }
-.bg-surface-elevated\/40 { background-color: rgba(22, 32, 56, 0.4); }
-.bg-card { background-color: #121a2e; }
-.bg-card\/90 { background-color: rgba(18, 26, 46, 0.9); }
-.bg-card\/80 { background-color: rgba(18, 26, 46, 0.8); }
-.bg-card\/60 { background-color: rgba(18, 26, 46, 0.6); }
+/* Light Mode Card & Surface Utilities */
+.bg-background { background-color: #f8fafc; }
+.bg-surface { background-color: #ffffff; }
+.bg-surface-elevated { background-color: #f1f5f9; }
+.bg-card { background-color: #ffffff; }
 
-/* Glow shadows */
-.shadow-glow { box-shadow: 0 0 20px rgba(0, 242, 254, 0.25) !important; }
-.shadow-glow-purple { box-shadow: 0 0 20px rgba(168, 85, 247, 0.25) !important; }
+/* Clean Minimal Scrollbar for Light Theme */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(0,242,254,0.5); }
+/* Subtle card shadow */
+.card-shadow {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+}
+
+button {
+  transition: all 0.15s ease-in-out;
+}

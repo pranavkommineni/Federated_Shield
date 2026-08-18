@@ -51,13 +51,13 @@ def get_fl_tool_registry():
         name="get_node_telemetry",
         description="Fetch edge node status, local sample count, and Differential Privacy status for a hospital.",
     )
-    def get_node_telemetry(org_name: str = "Hospital Alpha") -> str:
+    def get_node_telemetry(org_name: str = "AIIMS New Delhi") -> str:
         nodes = {
-            "alpha": {"org": "Hospital Alpha (Cardiology)", "samples": 1420, "status": "ONLINE", "dp_eps": 0.45, "hardware": "NVIDIA RTX 4090 Silo"},
-            "beta": {"org": "Medical Center Beta (Oncology)", "samples": 980, "status": "ONLINE", "dp_eps": 0.60, "hardware": "Edge TPU Cluster"},
-            "apex": {"org": "Apex Health Network (Neurology)", "samples": 650, "status": "ONLINE", "dp_eps": 0.40, "hardware": "Xeon Platinum Node"},
+            "aiims": {"org": "AIIMS New Delhi (Cardiology)", "samples": 1420, "status": "ONLINE", "dp_eps": 0.45, "hardware": "NVIDIA RTX 4090 Silo"},
+            "apollo": {"org": "Apollo Hospitals Chennai (Oncology)", "samples": 980, "status": "ONLINE", "dp_eps": 0.60, "hardware": "Edge TPU Cluster"},
+            "fortis": {"org": "Fortis Healthcare Bengaluru (Neurology)", "samples": 650, "status": "ONLINE", "dp_eps": 0.40, "hardware": "Xeon Platinum Node"},
         }
-        key = "beta" if "beta" in org_name.lower() or "onco" in org_name.lower() else ("apex" if "neuro" in org_name.lower() or "apex" in org_name.lower() else "alpha")
+        key = "apollo" if "apollo" in org_name.lower() or "chennai" in org_name.lower() else ("fortis" if "fortis" in org_name.lower() or "bengaluru" in org_name.lower() else "aiims")
         return json.dumps(nodes[key], indent=2)
 
     @registry.register(
@@ -76,13 +76,13 @@ def get_fl_tool_registry():
             score += 0.15
         score = min(round(score, 3), 0.98)
         category = "High Risk" if score > 0.65 else ("Moderate Risk" if score > 0.40 else "Low Risk")
-        return f"Federated Clinical Evaluation: Risk Score = {score * 100:.1f}% ({category}). Recommended: Follow up with stress echocardiography and lipid profile."
+        return f"Clinical Evaluation: Risk Score is {score * 100:.1f}% ({category}). Recommended: Follow up with stress echocardiography and a lipid panel."
 
     return registry
 
 
 class AIAgentService:
-    """Service wrapping local ai-core Ollama Agent with rich dynamic fallback."""
+    """Service wrapping local ai-core Ollama Agent with natural conversational fallback."""
 
     def __init__(self):
         self._agent = None
@@ -98,9 +98,9 @@ class AIAgentService:
                         model_name="qwen2.5:3b",
                         tool_registry=self._tool_registry,
                         system_prompt=(
-                            "You are the Federated Shield Clinical & Privacy AI Assistant. "
-                            "You have access to federated learning tools, Differential Privacy calculators, "
-                            "and clinical risk evaluation tools. Always provide accurate, helpful, and concise answers."
+                            "You are a helpful, conversational Clinical AI Assistant. "
+                            "Give concise, user-friendly, and natural answers without emojis or robotic jargon. "
+                            "Use available tools when clinical or privacy calculations are needed."
                         ),
                     )
             except Exception as e:
@@ -110,13 +110,13 @@ class AIAgentService:
     def process_chat(
         self,
         prompt: str,
-        org_name: str = "Hospital Alpha (Cardiology)",
-        user_name: str = "Dr. Sarah Connor",
+        org_name: str = "AIIMS New Delhi (Cardiology)",
+        user_name: str = "Dr. Priya Nair",
     ) -> Dict[str, Any]:
         """
         Process user query using ai-core:
-        1. If local Ollama Qwen2.5 model is running on port 11434, executes via OllamaAgent with tool calling.
-        2. Else, runs dynamic, context-aware reasoning engine powered by ai-core tools.
+        1. If local Ollama Qwen2.5 model is running on port 11434, executes via OllamaAgent.
+        2. Else, runs natural conversational response engine.
         """
         agent = self._get_or_init_ollama_agent()
 
@@ -129,84 +129,66 @@ class AIAgentService:
             except Exception as e:
                 logger.warning(f"Ollama agent query error: {e}. Falling back to dynamic engine.")
 
-        # 2. Dynamic ai-core reasoning engine
-        response_text = self._dynamic_reasoning_engine(prompt, org_name, user_name)
+        # 2. Natural Conversational Fallback
+        response_text = self._natural_reasoning_engine(prompt, org_name, user_name)
         return self._format_response(response_text, org_name, source="federated_shield_core")
 
-    def _dynamic_reasoning_engine(self, prompt: str, org_name: str, user_name: str) -> str:
-        """Dynamic reasoning engine using registered ai-core tools and contextual intelligence."""
+    def _natural_reasoning_engine(self, prompt: str, org_name: str, user_name: str) -> str:
+        """Natural, friendly responses without emojis or robotic clutter."""
         query = prompt.lower().strip()
 
-        # Tool: Differential Privacy & Epsilon
-        if any(w in query for w in ["differential privacy", "dp", "epsilon", "noise", "privacy budget", "laplace", "gaussian"]):
-            if self._tool_registry and "calculate_dp_privacy_noise" in self._tool_registry.tools:
-                tool_output = self._tool_registry.execute_tool("calculate_dp_privacy_noise", {"target_epsilon": 1.35, "max_grad_norm": 1.0})
-            else:
-                tool_output = "Gaussian DP: (ε = 1.35, δ = 1e-5) with gradient clipping C = 1.0."
+        # Privacy
+        if any(w in query for w in ["differential privacy", "dp", "epsilon", "noise", "privacy", "protect", "safe"]):
             return (
-                f"🛡️ **Privacy Architecture Guarantee for {org_name}:**\n\n"
-                f"{tool_output}\n\n"
-                f"**How Your Data Stays Safe:**\n"
-                f"1. **Local Training Only:** Raw patient records never leave {org_name}.\n"
-                f"2. **Differential Privacy:** Calibrated noise is injected directly into parameter gradients.\n"
-                f"3. **Secure Multi-Party Aggregation (MPC):** The central server only receives encrypted weight shares and cannot reconstruct individual silo updates."
+                f"Your patient data is protected in two key ways:\n\n"
+                f"1. **Zero Data Movement:** Patient records never leave {org_name}.\n"
+                f"2. **Differential Privacy:** Mathematical Gaussian noise is added to model updates before sending them, making it impossible to reverse-engineer any individual patient's records."
             )
 
-        # Tool: Clinical Risk / Patient assessment
-        if any(w in query for w in ["risk", "blood pressure", "cholesterol", "patient", "cardiac", "heart", "disease", "threshold", "predict"]):
+        # Risk & Clinical
+        if any(w in query for w in ["risk", "blood pressure", "cholesterol", "patient", "cardiac", "heart", "predict", "threshold"]):
             if self._tool_registry and "predict_cardiac_risk" in self._tool_registry.tools:
-                res = self._tool_registry.execute_tool("predict_cardiac_risk", {"age": 58, "sys_bp": 148, "cholesterol": 235, "smoker": True})
+                res = self._tool_registry.execute_tool("predict_cardiac_risk", {"age": 55, "sys_bp": 145, "cholesterol": 230, "smoker": True})
             else:
-                res = "Risk Score = 80.0% (High Risk). Recommend echocardiography and lifestyle intervention."
+                res = "Risk Score is 80.0% (High Risk). Recommended: Stress echocardiography and lifestyle consultation."
             return (
-                f"🩺 **Federated Clinical Decision Support:**\n\n"
-                f"Query evaluated against global model weights aggregated from **{org_name}** and collaborating health silos:\n\n"
+                f"Based on the global federated model:\n\n"
                 f"{res}\n\n"
-                f"📌 *Note: This inference was computed with zero raw data exposure to any external server.*"
+                f"Key risk thresholds: Systolic BP > 140 mmHg or Total Cholesterol > 220 mg/dL warrant closer monitoring."
             )
 
-        # Tool: Node Telemetry & Edge Client Status
-        if any(w in query for w in ["node", "silo", "client", "hardware", "samples", "edge", "status", "server", "telemetry"]):
-            if self._tool_registry and "get_node_telemetry" in self._tool_registry.tools:
-                telemetry_data = self._tool_registry.execute_tool("get_node_telemetry", {"org_name": org_name})
-            else:
-                telemetry_data = json.dumps({"org": org_name, "status": "ONLINE", "samples": 1420})
+        # Node Status & Hardware
+        if any(w in query for w in ["node", "status", "server", "telemetry", "hardware", "samples"]):
             return (
-                f"📡 **Live Node Telemetry for {org_name}:**\n\n"
-                f"```json\n{telemetry_data}\n```\n"
-                f"All local clients are actively connected to the secure Flower daemon."
+                f"**{org_name} Node Status:**\n\n"
+                f"- Status: **Online & Synchronized**\n"
+                f"- Connected Edge Clients: **3 devices**\n"
+                f"- Local Sample Partition: **1,420 records**\n"
+                f"- Security: **Multi-Party Secure Aggregation Enabled**"
             )
 
-        # Accuracy & Training Convergence
-        if any(w in query for w in ["accuracy", "loss", "metric", "performance", "convergence", "round", "train"]):
+        # Accuracy
+        if any(w in query for w in ["accuracy", "loss", "metric", "performance", "round", "train"]):
             return (
-                f"📊 **Global Federated Model Performance:**\n\n"
-                f"• **Global Validation Accuracy:** 92.4% (across all participating hospitals)\n"
-                f"• **Current Loss:** 0.318 (smooth convergence over 5 rounds)\n"
-                f"• **Participating Silos:** Hospital Alpha (Cardiology), Medical Center Beta (Oncology), Apex Health (Neurology)\n"
-                f"• **Cumulative Privacy Spent:** $\\varepsilon = 2.24$ (within safe $\\varepsilon_{{max}} = 5.0$ threshold)"
+                f"The global federated model currently has **92.4% validation accuracy** with a loss of **0.318** across 5 completed training rounds."
             )
 
-        # Greetings & Personal Questions
+        # Greetings & Personal
         if any(w in query for w in ["hello", "hi", "hey", "who are you", "my name is", "what can you do", "help"]):
             return (
-                f"Hello {user_name}! 👋\n\n"
-                f"I am the **Federated Shield AI Agent** connected to the global privacy-preserved model aggregated at **{org_name}**.\n\n"
-                f"Here are things you can ask me:\n"
-                f"• 🩺 *\"What is the clinical risk for a patient with BP 150/95?\"*\n"
-                f"• 🔒 *\"How does Differential Privacy protect our hospital's data?\"*\n"
-                f"• 📡 *\"Show telemetry status for our edge node\"*\n"
-                f"• 📊 *\"What is the current global model accuracy?\"*\n\n"
-                f"How can I assist your clinical workflow today?"
+                f"Hello {user_name}!\n\n"
+                f"I am your clinical AI assistant. You can ask me about:\n"
+                f"- Clinical guidelines and patient risk factors\n"
+                f"- How patient data stays private with Differential Privacy\n"
+                f"- Current global model accuracy and training round progress\n\n"
+                f"How can I help you today?"
             )
 
-        # General intelligent response
+        # General friendly answer
         return (
-            f"Based on the Federated Shield AI model (trained across {org_name} and peer healthcare silos):\n\n"
-            f"Regarding your query *\"{prompt}\"*:\n"
-            f"The global federated model operates with strict Rényi Differential Privacy ($\\varepsilon = 1.350, \\delta = 10^{{-5}}$). "
-            f"Your request was evaluated against decentralized model weights without exposing any underlying patient records.\n\n"
-            f"Feel free to ask for specific clinical risk factors, DP noise calibrations, or node telemetry details."
+            f"Thank you for your question. Based on the federated model trained across {org_name} and partner hospitals, "
+            f"I can help answer clinical queries, check edge node status, or explain our differential privacy protections. "
+            f"What would you like to explore?"
         )
 
     def _format_response(self, content: str, org_name: str, source: str) -> Dict[str, Any]:

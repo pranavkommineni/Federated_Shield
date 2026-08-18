@@ -50,14 +50,14 @@ export function useMetricsSocket() {
               timestamp: data.timestamp || new Date().toISOString(),
             };
             setLiveRounds((prev) => [...prev.filter((r) => r.roundNumber !== newMetric.roundNumber), newMetric]);
-            addLog('round_complete', `⚡ Round ${data.round}/${data.total_rounds} | Acc: ${(data.accuracy * 100).toFixed(2)}% | Loss: ${data.loss.toFixed(4)} | +${(data.epsilon_spent || 0).toFixed(3)} ε`);
+            addLog('round_complete', `Round ${data.round}/${data.total_rounds} | Acc: ${(data.accuracy * 100).toFixed(2)}% | Loss: ${data.loss.toFixed(4)} | +${(data.epsilon_spent || 0).toFixed(3)} ε`);
           } else if (data.event === 'training_started') {
             setLiveRounds([]);
-            addLog('training_started', `🚀 ${data.message || `Training started (${data.total_rounds} rounds)`}`);
+            addLog('training_started', `${data.message || `Training started (${data.total_rounds} rounds)`}`);
           } else if (data.event === 'training_completed') {
-            addLog('training_completed', `🏆 Training Completed! Final Acc: ${((lastEvent?.accuracy || 0.92) * 100).toFixed(2)}%`);
+            addLog('training_completed', `Training Completed. Final Accuracy: ${((lastEvent?.accuracy || 0.92) * 100).toFixed(2)}%`);
           } else if (data.event === 'training_stopped') {
-            addLog('training_stopped', `🛑 Training halted.`);
+            addLog('training_stopped', `Training halted.`);
           }
         } catch (err) {
           console.warn('Failed to parse WebSocket JSON:', err);

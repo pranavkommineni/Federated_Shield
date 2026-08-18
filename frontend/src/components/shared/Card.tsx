@@ -20,20 +20,20 @@ export const Card: React.FC<CardProps> = ({
   noPadding = false,
 }) => {
   return (
-    <div className={`bg-card/90 backdrop-blur-md border border-slate-800 rounded-2xl shadow-xl overflow-hidden ${className}`}>
+    <div className={`bg-white border border-slate-200/90 rounded-xl shadow-sm overflow-hidden ${className}`}>
       {(title || action) && (
-        <div className="px-6 py-4 border-b border-slate-800/80 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            {icon && <div className="text-cyan-400 text-lg">{icon}</div>}
+        <div className="px-5 py-3.5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            {icon && <div className="text-blue-600 text-sm">{icon}</div>}
             <div>
-              {title && <h3 className="text-base font-bold text-slate-100">{title}</h3>}
-              {subtitle && <p className="text-xs text-slate-400">{subtitle}</p>}
+              {title && <h3 className="text-xs sm:text-sm font-semibold text-slate-900">{title}</h3>}
+              {subtitle && <p className="text-[11px] text-slate-500">{subtitle}</p>}
             </div>
           </div>
           {action && <div>{action}</div>}
         </div>
       )}
-      <div className={noPadding ? '' : 'p-6'}>{children}</div>
+      <div className={noPadding ? '' : 'p-5'}>{children}</div>
     </div>
   );
 };

@@ -4,7 +4,6 @@ import {
   Building2,
   LayoutDashboard,
   Users,
-  ShieldAlert,
   LogOut,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -21,118 +20,118 @@ export const OrgLayout: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-background text-slate-100">
+    <div className="flex min-h-screen bg-slate-50 text-slate-900 font-sans">
       {/* Org Sidebar */}
-      <aside className="w-64 bg-surface/90 border-r border-slate-800 flex flex-col justify-between backdrop-blur-xl fixed inset-y-0 z-30">
+      <aside className="w-60 bg-white border-r border-slate-200 flex flex-col justify-between fixed inset-y-0 z-30">
         <div>
-          {/* Org Brand Logo */}
-          <div className="p-6 border-b border-slate-800/80">
+          {/* Org Brand */}
+          <div className="p-5 border-b border-slate-100">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-slate-100 shadow-glow-purple">
-                <Building2 size={22} />
+              <div className="w-8 h-8 rounded-lg bg-violet-50 border border-violet-100 flex items-center justify-center text-violet-600">
+                <Building2 size={18} />
               </div>
               <div className="overflow-hidden">
-                <h1 className="text-sm font-extrabold text-slate-100 truncate">
-                  {selectedOrgName || 'Hospital Alpha'}
+                <h1 className="text-xs font-bold text-slate-900 truncate">
+                  {selectedOrgName || 'AIIMS New Delhi'}
                 </h1>
-                <span className="text-[10px] text-purple-400 font-bold uppercase tracking-wider bg-purple-500/10 px-1.5 py-0.5 rounded border border-purple-500/20">
-                  Org Administrator
+                <span className="text-[10px] text-violet-600 font-semibold">
+                  Organization Portal
                 </span>
               </div>
             </div>
           </div>
 
           {/* Navigation Links */}
-          <nav className="p-4 space-y-1.5">
+          <nav className="p-3 space-y-1">
             <NavLink
               to={`/org/${currentOrgId}`}
               end
               className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+                `flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                   isActive
-                    ? 'bg-gradient-to-r from-purple-500/20 to-indigo-600/10 text-purple-300 border border-purple-500/30 shadow-glow-purple'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                    ? 'bg-violet-50 text-violet-700 font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 }`
               }
             >
-              <LayoutDashboard size={18} />
+              <LayoutDashboard size={16} />
               <span>Node Overview</span>
             </NavLink>
 
             <NavLink
               to={`/org/${currentOrgId}/users`}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+                `flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                   isActive
-                    ? 'bg-gradient-to-r from-purple-500/20 to-indigo-600/10 text-purple-300 border border-purple-500/30 shadow-glow-purple'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                    ? 'bg-violet-50 text-violet-700 font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 }`
               }
             >
-              <Users size={18} />
-              <span>Manage Users & Chat</span>
+              <Users size={16} />
+              <span>User & Chat Access</span>
             </NavLink>
           </nav>
         </div>
 
         {/* User Info & Switch Persona */}
-        <div className="p-4 border-t border-slate-800/80 bg-surface-elevated/40">
-          <div className="bg-slate-800/60 p-3 rounded-xl border border-slate-700/60 mb-2">
-            <div className="text-xs font-bold text-slate-200 truncate">{currentUser?.fullName}</div>
-            <div className="text-[11px] text-purple-400 truncate">{currentUser?.department || 'Lead Administrator'}</div>
+        <div className="p-3 border-t border-slate-200 bg-slate-50">
+          <div className="bg-white p-2.5 rounded-lg border border-slate-200 shadow-sm mb-3">
+            <div className="text-xs font-semibold text-slate-900 truncate">{currentUser?.fullName}</div>
+            <div className="text-[11px] text-violet-600 truncate">{currentUser?.department || 'Lead Administrator'}</div>
           </div>
 
-          {/* Quick Role Switcher for Demo Testing */}
+          {/* Quick Persona Switch without emojis */}
           <div className="grid grid-cols-2 gap-1.5 mb-2">
             <button
               onClick={() => {
                 loginAs('admin');
                 navigate('/admin');
               }}
-              className="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 py-1.5 rounded-lg font-medium text-center border border-slate-700"
+              className="text-[11px] bg-white hover:bg-slate-100 text-slate-700 py-1.5 rounded-md font-medium text-center border border-slate-200 shadow-sm"
             >
-              👑 Admin View
+              Admin
             </button>
             <button
               onClick={() => {
                 loginAs('end_user');
                 navigate('/chat');
               }}
-              className="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 py-1.5 rounded-lg font-medium text-center border border-slate-700"
+              className="text-[11px] bg-white hover:bg-slate-100 text-slate-700 py-1.5 rounded-md font-medium text-center border border-slate-200 shadow-sm"
             >
-              💬 User Chat
+              AI Chat
             </button>
           </div>
 
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 py-2 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors border border-rose-500/20"
+            className="w-full flex items-center justify-center gap-1.5 py-1.5 text-xs text-rose-600 hover:bg-rose-50 rounded-md transition-colors font-medium"
           >
-            <LogOut size={14} /> Switch Persona / Logout
+            <LogOut size={13} /> Logout
           </button>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 ml-64 min-h-screen flex flex-col">
-        {/* Top Header */}
-        <header className="h-16 border-b border-slate-800 bg-surface/70 backdrop-blur-md px-8 flex items-center justify-between sticky top-0 z-20">
-          <div className="flex items-center gap-3">
-            <ShieldAlert size={16} className="text-purple-400" />
-            <span className="text-xs font-mono text-slate-400">
-              Data Silo Isolation: <strong className="text-emerald-400">Active (Zero Central Leak)</strong>
+      <div className="flex-1 ml-60 min-h-screen flex flex-col bg-slate-50">
+        {/* Header */}
+        <header className="h-14 border-b border-slate-200 bg-white/90 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-20">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span className="text-xs text-slate-600">
+              Silo Isolation: <strong className="text-emerald-700 font-semibold">Active (Zero Raw Data Leakage)</strong>
             </span>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="text-xs bg-slate-800/80 px-3 py-1.5 rounded-full border border-slate-700 text-slate-300">
-              Scoped to: <strong className="text-purple-400">{selectedOrgName || 'Hospital Alpha'}</strong>
+          <div className="flex items-center gap-3">
+            <div className="text-xs bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200 text-slate-700 font-medium">
+              Silo: <span className="text-violet-700 font-semibold">{selectedOrgName || 'AIIMS New Delhi'}</span>
             </div>
           </div>
         </header>
 
         {/* Page Views */}
-        <main className="flex-1 p-8 overflow-y-auto">
+        <main className="flex-1 p-6 overflow-y-auto">
           <Outlet />
         </main>
       </div>

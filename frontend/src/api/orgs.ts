@@ -6,9 +6,9 @@ import { User, InviteUserPayload } from '../types/user';
 export const MOCK_ORGS: Organization[] = [
   {
     id: 1,
-    name: 'Hospital Alpha (Cardiology)',
+    name: 'AIIMS New Delhi (Cardiology)',
     status: 'idle',
-    description: 'Regional cardiology center with local differential privacy noise enabled.',
+    description: 'National apex cardiology institute with local differential privacy noise enabled.',
     clientCount: 14,
     localAccuracy: 0.892,
     localLoss: 0.312,
@@ -16,16 +16,16 @@ export const MOCK_ORGS: Organization[] = [
     epsilonSpent: 1.45,
     createdAt: '2026-08-01T08:00:00Z',
     devices: [
-      { id: 'dev-01', name: 'Cardio-Node-Alpha-1', type: 'hospital_server', status: 'idle', cpuUsage: 14, memoryMb: 1420, ipAddress: '10.0.1.15', lastSeen: 'Just now' },
-      { id: 'dev-02', name: 'ECG-Workstation-4', type: 'edge_node', status: 'idle', cpuUsage: 8, memoryMb: 512, ipAddress: '10.0.1.28', lastSeen: '1 min ago' },
-      { id: 'dev-03', name: 'Echo-Scanner-Node', type: 'radiology_workstation', status: 'idle', cpuUsage: 22, memoryMb: 2048, ipAddress: '10.0.1.33', lastSeen: '3 mins ago' },
+      { id: 'dev-01', name: 'AIIMS-Cardio-Server-01', type: 'hospital_server', status: 'idle', cpuUsage: 14, memoryMb: 1420, ipAddress: '10.0.1.15', lastSeen: 'Just now' },
+      { id: 'dev-02', name: 'AIIMS-ECG-Workstation-4', type: 'edge_node', status: 'idle', cpuUsage: 8, memoryMb: 512, ipAddress: '10.0.1.28', lastSeen: '1 min ago' },
+      { id: 'dev-03', name: 'AIIMS-Echo-Scanner-Node', type: 'radiology_workstation', status: 'idle', cpuUsage: 22, memoryMb: 2048, ipAddress: '10.0.1.33', lastSeen: '3 mins ago' },
     ],
   },
   {
     id: 2,
-    name: 'Medical Center Beta (Oncology)',
+    name: 'Apollo Hospitals Chennai (Oncology)',
     status: 'idle',
-    description: 'Pediatric oncology clinical silo contributing multi-party gradient updates.',
+    description: 'Comprehensive cancer care clinical silo contributing multi-party gradient updates.',
     clientCount: 9,
     localAccuracy: 0.865,
     localLoss: 0.384,
@@ -33,15 +33,15 @@ export const MOCK_ORGS: Organization[] = [
     epsilonSpent: 1.25,
     createdAt: '2026-08-02T10:00:00Z',
     devices: [
-      { id: 'dev-04', name: 'Onco-Cluster-Master', type: 'hospital_server', status: 'idle', cpuUsage: 19, memoryMb: 2800, ipAddress: '10.0.2.10', lastSeen: 'Just now' },
-      { id: 'dev-05', name: 'Pathology-Scan-Node', type: 'edge_node', status: 'idle', cpuUsage: 11, memoryMb: 890, ipAddress: '10.0.2.22', lastSeen: 'Just now' },
+      { id: 'dev-04', name: 'Apollo-Onco-Cluster-Master', type: 'hospital_server', status: 'idle', cpuUsage: 19, memoryMb: 2800, ipAddress: '10.0.2.10', lastSeen: 'Just now' },
+      { id: 'dev-05', name: 'Apollo-Pathology-Scan-Node', type: 'edge_node', status: 'idle', cpuUsage: 11, memoryMb: 890, ipAddress: '10.0.2.22', lastSeen: 'Just now' },
     ],
   },
   {
     id: 3,
-    name: 'Apex Health Network (Neurology)',
+    name: 'Fortis Healthcare Bengaluru (Neurology)',
     status: 'idle',
-    description: 'Neuroimaging federated participant with Shamir Secret Sharing aggregation.',
+    description: 'Neurology research silo participating with Shamir Secret Sharing secure aggregation.',
     clientCount: 6,
     localAccuracy: 0.914,
     localLoss: 0.265,
@@ -49,7 +49,7 @@ export const MOCK_ORGS: Organization[] = [
     epsilonSpent: 0.95,
     createdAt: '2026-08-04T11:30:00Z',
     devices: [
-      { id: 'dev-06', name: 'Neuro-EEG-Cluster', type: 'hospital_server', status: 'idle', cpuUsage: 12, memoryMb: 1650, ipAddress: '10.0.3.5', lastSeen: '5 mins ago' },
+      { id: 'dev-06', name: 'Fortis-Neuro-EEG-Cluster', type: 'hospital_server', status: 'idle', cpuUsage: 12, memoryMb: 1650, ipAddress: '10.0.3.5', lastSeen: '5 mins ago' },
     ],
   },
 ];
@@ -57,24 +57,20 @@ export const MOCK_ORGS: Organization[] = [
 // Fallback mock users scoped per organization
 let mockOrgUsersStore: Record<number, User[]> = {
   1: [
-    { id: 101, username: 'dr_sarah_c', fullName: 'Dr. Sarah Connor', email: 'sarah.connor@hospital-alpha.org', role: 'end_user', orgId: 1, orgName: 'Hospital Alpha (Cardiology)', department: 'Cardiology Clinician', hasChatAccess: true, createdAt: '2026-08-10T09:30:00Z' },
-    { id: 102, username: 'dr_marcus_v', fullName: 'Dr. Marcus Vance', email: 'marcus.vance@hospital-alpha.org', role: 'end_user', orgId: 1, orgName: 'Hospital Alpha (Cardiology)', department: 'Interventional Cardiology', hasChatAccess: true, createdAt: '2026-08-11T14:20:00Z' },
-    { id: 103, username: 'intern_alex', fullName: 'Alex Rivera', email: 'alex.rivera@hospital-alpha.org', role: 'end_user', orgId: 1, orgName: 'Hospital Alpha (Cardiology)', department: 'Cardiology Intern', hasChatAccess: false, createdAt: '2026-08-12T11:15:00Z' },
-    { id: 104, username: 'nurse_emily', fullName: 'Emily Watson', email: 'emily.watson@hospital-alpha.org', role: 'end_user', orgId: 1, orgName: 'Hospital Alpha (Cardiology)', department: 'Clinical Care Nurse', hasChatAccess: true, createdAt: '2026-08-14T16:00:00Z' },
+    { id: 101, username: 'dr_priya_nair', fullName: 'Dr. Priya Nair', email: 'priya.nair@aiims.edu.in', role: 'end_user', orgId: 1, orgName: 'AIIMS New Delhi (Cardiology)', department: 'Cardiology Consultant', hasChatAccess: true, createdAt: '2026-08-10T09:30:00Z' },
+    { id: 102, username: 'dr_rohan_m', fullName: 'Dr. Rohan Mehta', email: 'rohan.mehta@aiims.edu.in', role: 'end_user', orgId: 1, orgName: 'AIIMS New Delhi (Cardiology)', department: 'Interventional Cardiology', hasChatAccess: true, createdAt: '2026-08-11T14:20:00Z' },
+    { id: 103, username: 'intern_aarav', fullName: 'Aarav Patel', email: 'aarav.patel@aiims.edu.in', role: 'end_user', orgId: 1, orgName: 'AIIMS New Delhi (Cardiology)', department: 'Cardiology Resident', hasChatAccess: false, createdAt: '2026-08-12T11:15:00Z' },
+    { id: 104, username: 'nurse_sunita', fullName: 'Sunita Deshmukh', email: 'sunita.deshmukh@aiims.edu.in', role: 'end_user', orgId: 1, orgName: 'AIIMS New Delhi (Cardiology)', department: 'Clinical ICU In-Charge', hasChatAccess: true, createdAt: '2026-08-14T16:00:00Z' },
   ],
   2: [
-    { id: 201, username: 'dr_chen_onco', fullName: 'Dr. Wei Chen', email: 'wei.chen@med-beta.org', role: 'end_user', orgId: 2, orgName: 'Medical Center Beta (Oncology)', department: 'Pediatric Oncology', hasChatAccess: true, createdAt: '2026-08-08T10:00:00Z' },
-    { id: 202, username: 'researcher_lisa', fullName: 'Lisa Ray', email: 'lisa.ray@med-beta.org', role: 'end_user', orgId: 2, orgName: 'Medical Center Beta (Oncology)', department: 'Clinical Research', hasChatAccess: false, createdAt: '2026-08-13T12:45:00Z' },
+    { id: 201, username: 'dr_vikram_rao', fullName: 'Dr. Vikram Rao', email: 'vikram.rao@apollohospitals.com', role: 'end_user', orgId: 2, orgName: 'Apollo Hospitals Chennai (Oncology)', department: 'Medical Oncology', hasChatAccess: true, createdAt: '2026-08-08T10:00:00Z' },
+    { id: 202, username: 'researcher_kavita', fullName: 'Kavita Krishnan', email: 'kavita.k@apollohospitals.com', role: 'end_user', orgId: 2, orgName: 'Apollo Hospitals Chennai (Oncology)', department: 'Clinical Data Scientist', hasChatAccess: false, createdAt: '2026-08-13T12:45:00Z' },
   ],
   3: [
-    { id: 301, username: 'dr_tariq_neuro', fullName: 'Dr. Tariq Ahmed', email: 'tariq@apex-health.org', role: 'end_user', orgId: 3, orgName: 'Apex Health Network (Neurology)', department: 'Neuro-Diagnostics', hasChatAccess: true, createdAt: '2026-08-15T09:00:00Z' },
+    { id: 301, username: 'dr_meera_s', fullName: 'Dr. Meera Sengupta', email: 'meera.s@fortishealthcare.com', role: 'end_user', orgId: 3, orgName: 'Fortis Healthcare Bengaluru (Neurology)', department: 'Neuro-Diagnostics', hasChatAccess: true, createdAt: '2026-08-15T09:00:00Z' },
   ],
 };
 
-/**
- * Fetch all registered organizations (Admin View)
- * TODO: Hooked to backend GET /orgs
- */
 export async function fetchOrganizations(): Promise<Organization[]> {
   try {
     const res = await apiClient.get<any[]>('/orgs');
@@ -83,7 +79,7 @@ export async function fetchOrganizations(): Promise<Organization[]> {
         id: item.id,
         name: item.name,
         status: item.status || 'idle',
-        description: item.description || 'Simulated edge node',
+        description: item.description || 'Federated edge hospital node',
         clientCount: (idx + 2) * 3,
         localAccuracy: 0.85 + (idx * 0.02),
         localLoss: 0.35 - (idx * 0.02),
@@ -99,10 +95,6 @@ export async function fetchOrganizations(): Promise<Organization[]> {
   }
 }
 
-/**
- * Fetch organization details scoped to a single org (Org View)
- * TODO: Hooked to backend GET /nodes/{orgId}/telemetry
- */
 export async function fetchOrgTelemetry(orgId: number): Promise<OrgTelemetry | null> {
   try {
     const res = await apiClient.get(`/nodes/${orgId}/telemetry`);
@@ -155,10 +147,6 @@ export async function fetchOrgTelemetry(orgId: number): Promise<OrgTelemetry | n
   }
 }
 
-/**
- * Fetch all users under an organization (Scoped strictly to THAT org)
- * TODO: Hooked to backend GET /users?org_id={orgId}
- */
 export async function fetchOrgUsers(orgId: number): Promise<User[]> {
   try {
     const res = await apiClient.get<any[]>(`/users?org_id=${orgId}`);
@@ -181,10 +169,6 @@ export async function fetchOrgUsers(orgId: number): Promise<User[]> {
   }
 }
 
-/**
- * Invite / Add a new user under this organization
- * TODO: Hooked to backend POST /users/register
- */
 export async function inviteUser(payload: InviteUserPayload): Promise<User> {
   const newUser: User = {
     id: Date.now(),
@@ -213,15 +197,12 @@ export async function inviteUser(payload: InviteUserPayload): Promise<User> {
       department: payload.department,
     });
   } catch (e) {
-    // Graceful fallback to mock store
+    // Graceful fallback
   }
 
   return newUser;
 }
 
-/**
- * Toggle AI Chat Access for a specific user (Org Admin permission control)
- */
 export async function toggleChatAccess(orgId: number, userId: number | string, hasAccess: boolean): Promise<boolean> {
   if (mockOrgUsersStore[orgId]) {
     const target = mockOrgUsersStore[orgId].find((u) => u.id === userId);
@@ -232,10 +213,6 @@ export async function toggleChatAccess(orgId: number, userId: number | string, h
   return true;
 }
 
-/**
- * Register a new organization (Admin View)
- * TODO: Hooked to backend POST /orgs/register
- */
 export async function registerOrganization(name: string, description?: string): Promise<Organization> {
   const res = await apiClient.post('/orgs/register', { name, description });
   return {
