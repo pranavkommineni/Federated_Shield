@@ -17,11 +17,25 @@ def load_qwen_model_and_tokenizer(
     """
     Load Qwen tokenizer and base causal language model.
     
-    Supports 4-bit NF4 quantization via bitsandbytes for 8 GB RAM compatibility.
+    Supports offline mode by attempting local system cache loading if network fails,
+    raising an explicit RuntimeError if the model is unavailable on the system.
     """
     from transformers import AutoModelForCausalLM, AutoTokenizer
     
-    tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, trust_remote_code=True)
+    tokenizer = None
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, trust_remote_code=True)
+    except Exception as e_online:
+        logger.warning(f"Online tokenizer load failed for '{model_name_or_path}'. Attempting local system cache...")
+        try:
+            tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, local_files_only=True, trust_remote_code=True)
+        except Exception as e_offline:
+            raise RuntimeError(
+                f"Model '{model_name_or_path}' is unavailable on the system. "
+                f"Offline loading failed and network connection was unsuccessful. "
+                f"Please ensure model weights are cached or provide a valid local path."
+            ) from e_offline
+
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
@@ -50,8 +64,21 @@ def load_qwen_model_and_tokenizer(
         else:
             model_kwargs["torch_dtype"] = torch.float32
 
-    model = AutoModelForCausalLM.from_pretrained(model_name_or_path, **model_kwargs)
+    try:
+        model = AutoModelForCausalLM.from_pretrained(model_name_or_path, **model_kwargs)
+    except Exception as e_online:
+        logger.warning(f"Online model weights load failed for '{model_name_or_path}'. Attempting local system cache...")
+        try:
+            model = AutoModelForCausalLM.from_pretrained(model_name_or_path, local_files_only=True, **model_kwargs)
+        except Exception as e_offline:
+            raise RuntimeError(
+                f"Model weights for '{model_name_or_path}' are unavailable on the system. "
+                f"Offline loading failed and network connection was unsuccessful. "
+                f"Please ensure model weights are cached or provide a valid local path."
+            ) from e_offline
+
     return model, tokenizer
+
 
 
 def apply_lora_to_model(
