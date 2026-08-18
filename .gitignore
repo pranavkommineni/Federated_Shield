@@ -1,7 +1,21 @@
+# Node modules & frontend builds
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+.vite/
+frontend/.vite/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
 
 # Pytest / Coverage
 .pytest_cache/
