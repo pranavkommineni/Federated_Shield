@@ -1,6 +1,7 @@
 """
 Web-Based Interactive Chat Interface for Federated Shield Agent
-Serves a modern web UI on http://localhost:8080 connected to local OllamaAgent equipped with FL task tools.
+Serves a modern web UI on http://localhost:8080 connected to PyTorch Agent / OllamaAgent.
+Runs 100% locally WITHOUT Ollama dependency when Ollama is not active.
 """
 
 import json
@@ -14,8 +15,9 @@ ai_core_dir = os.path.join(base_dir, "ai-core")
 if ai_core_dir not in sys.path:
     sys.path.insert(0, ai_core_dir)
 
-from agent.ollama_agent import OllamaAgent
 from agent.tool_registry import ToolRegistry
+from agent.agent_loop import Agent
+from model.llm_model import MockLLMModel, DummyTokenizer
 from model.ollama_model import is_ollama_available
 from fl.simulation import run_fl_simulation
 
@@ -49,19 +51,23 @@ def create_fl_registry() -> ToolRegistry:
             return f"Error executing FL simulation: {str(e)}"
 
     @registry.register(name="get_node_fl_status", description="Query federated client node status, data partition size, and active training status")
-    def get_node_fl_status(node_id: str) -> str:
+    def get_node_fl_status(node_id: str = "node-01") -> str:
         nodes = {
             "node-01": {"org": "FinTech Corp", "samples": 1250, "status": "READY", "dp_eps": 0.5},
             "node-02": {"org": "HealthCare Plus", "samples": 980, "status": "TRAINING", "dp_eps": 0.8},
             "node-03": {"org": "Retail Group", "samples": 2100, "status": "READY", "dp_eps": 0.4},
             "server-main": {"role": "Aggregator Server", "secure_agg": "ACTIVE", "global_round": 3},
         }
-        info = nodes.get(node_id.lower(), {"org": "Partner Org", "samples": 1000, "status": "ACTIVE", "dp_eps": 0.5})
+        info = nodes.get(str(node_id).lower(), {"org": "Partner Org", "samples": 1000, "status": "ACTIVE", "dp_eps": 0.5})
         return json.dumps(info)
+
+    @registry.register(name="get_server_status", description="Get operational status of a server or node")
+    def get_server_status(server_id: str = "node-01") -> str:
+        return get_node_fl_status(server_id)
 
     @registry.register(name="calculate_dp_privacy_noise", description="Calculate Differential Privacy noise scale and privacy guarantees")
     def calculate_dp_privacy_noise(target_epsilon: float = 1.0, max_grad_norm: float = 1.0) -> str:
-        noise = round(max_grad_norm / (target_epsilon * 0.5), 3)
+        noise = round(float(max_grad_norm) / (float(target_epsilon) * 0.5), 3)
         return f"For Target Epsilon = {target_epsilon} and Clip Norm = {max_grad_norm}, inject Gaussian Noise std = {noise}. Guarantee: Differential Privacy (e={target_epsilon}, d=1e-5)."
 
     @registry.register(name="get_fl_metrics", description="Fetch metrics for past federated training rounds")
@@ -71,30 +77,53 @@ def create_fl_registry() -> ToolRegistry:
             2: {"round": 2, "global_loss": 0.3891, "val_accuracy": "83.6%", "participants": 4},
             3: {"round": 3, "global_loss": 0.2415, "val_accuracy": "91.8%", "participants": 4},
         }
-        return metrics.get(round_num, {"round": round_num, "global_loss": 0.2011, "val_accuracy": "93.4%", "participants": 4})
+        return metrics.get(int(round_num), {"round": round_num, "global_loss": 0.2011, "val_accuracy": "93.4%", "participants": 4})
+
+    @registry.register(name="add_numbers", description="Add two numbers together")
+    def add_numbers(a: float = 0, b: float = 0) -> str:
+        return str(float(a) + float(b))
 
     return registry
 
 
 registry = create_fl_registry()
-agent = OllamaAgent(
-    model_name="qwen2.5:3b",
-    tool_registry=registry,
-    system_prompt="You are the Federated Shield Autonomous AI Agent. You can perform, trigger, and monitor Federated Learning tasks (simulations, node queries, DP privacy calculations, and metrics evaluation) using available tools."
-)
+
+# Check if Ollama is available or if running standalone PyTorch Agent
+USE_OLLAMA = is_ollama_available() and "--no-ollama" not in sys.argv
+
+if USE_OLLAMA:
+    from agent.ollama_agent import OllamaAgent
+    logger.info("Initializing OllamaAgent with local Ollama service...")
+    agent = OllamaAgent(
+        model_name="qwen2.5:3b",
+        tool_registry=registry,
+        system_prompt="You are the Federated Shield Autonomous AI Agent equipped with FL tools."
+    )
+    mode_status_text = "Ollama Local Model (qwen2.5:3b) Ready"
+else:
+    logger.info("Initializing PyTorch Agent (Standalone Mode without Ollama)...")
+    model = MockLLMModel()
+    tokenizer = DummyTokenizer()
+    agent = Agent(
+        model=model,
+        tokenizer=tokenizer,
+        tool_registry=registry,
+        system_prompt="You are the Federated Shield Autonomous PyTorch AI Agent."
+    )
+    mode_status_text = "PyTorch Qwen Standalone Engine (No Ollama) Ready"
 
 
-HTML_CONTENT = """<!DOCTYPE html>
+HTML_CONTENT = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Federated Shield - AI Agent & FL Operations</title>
+    <title>Federated Shield - Standalone PyTorch AI Agent & FL Engine</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {
+        :root {{
             --bg-dark: #0f172a;
             --panel-bg: rgba(30, 41, 59, 0.75);
             --panel-border: rgba(255, 255, 255, 0.1);
@@ -105,16 +134,16 @@ HTML_CONTENT = """<!DOCTYPE html>
             --agent-bubble: #1e293b;
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
-        }
+        }}
 
-        * {
+        * {{
             box-sizing: border-box;
             margin: 0;
             padding: 0;
             font-family: 'Inter', sans-serif;
-        }
+        }}
 
-        body {
+        body {{
             background-color: var(--bg-dark);
             background-image: 
                 radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.15) 0px, transparent 50%),
@@ -125,9 +154,9 @@ HTML_CONTENT = """<!DOCTYPE html>
             justify-content: center;
             align-items: center;
             padding: 20px;
-        }
+        }}
 
-        .container {
+        .container {{
             width: 100%;
             max-width: 960px;
             height: 92vh;
@@ -139,24 +168,24 @@ HTML_CONTENT = """<!DOCTYPE html>
             flex-direction: column;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             overflow: hidden;
-        }
+        }}
 
-        .header {
+        .header {{
             padding: 20px 24px;
             border-bottom: 1px solid var(--panel-border);
             display: flex;
             align-items: center;
             justify-content: space-between;
             background: rgba(15, 23, 42, 0.5);
-        }
+        }}
 
-        .header-title {
+        .header-title {{
             display: flex;
             align-items: center;
             gap: 12px;
-        }
+        }}
 
-        .status-badge {
+        .status-badge {{
             display: inline-flex;
             align-items: center;
             gap: 6px;
@@ -167,79 +196,79 @@ HTML_CONTENT = """<!DOCTYPE html>
             border-radius: 9999px;
             font-size: 13px;
             font-weight: 500;
-        }
+        }}
 
-        .pulse-dot {
+        .pulse-dot {{
             width: 8px;
             height: 8px;
             background: var(--accent-green);
             border-radius: 50%;
             box-shadow: 0 0 8px var(--accent-green);
-        }
+        }}
 
-        .chat-box {
+        .chat-box {{
             flex: 1;
             padding: 24px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
             gap: 16px;
-        }
+        }}
 
-        .message-row {
+        .message-row {{
             display: flex;
             flex-direction: column;
             max-width: 85%;
-        }
+        }}
 
-        .message-row.user {
+        .message-row.user {{
             align-self: flex-end;
             align-items: flex-end;
-        }
+        }}
 
-        .message-row.agent {
+        .message-row.agent {{
             align-self: flex-start;
             align-items: flex-start;
-        }
+        }}
 
-        .bubble {
+        .bubble {{
             padding: 14px 18px;
             border-radius: 16px;
             font-size: 15px;
             line-height: 1.5;
             word-wrap: break-word;
             white-space: pre-wrap;
-        }
+        }}
 
-        .user .bubble {
+        .user .bubble {{
             background: linear-gradient(135deg, #2563eb, #3b82f6);
             color: white;
             border-bottom-right-radius: 4px;
             box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
-        }
+        }}
 
-        .agent .bubble {
+        .agent .bubble {{
             background: var(--agent-bubble);
             border: 1px solid var(--panel-border);
             color: var(--text-main);
             border-bottom-left-radius: 4px;
-        }
+        }}
 
-        .meta {
+        .meta {{
             font-size: 12px;
             color: var(--text-muted);
             margin-top: 4px;
             padding: 0 4px;
-        }
+        }}
 
-        .tools-used {
+        .tools-used {{
             display: flex;
             gap: 6px;
             margin-bottom: 6px;
             flex-wrap: wrap;
-        }
+        }}
 
-        .tool-tag {
+        .tool-tag {{
             background: rgba(56, 189, 248, 0.15);
             border: 1px solid rgba(56, 189, 248, 0.3);
             color: var(--accent-blue);
@@ -247,18 +276,18 @@ HTML_CONTENT = """<!DOCTYPE html>
             padding: 3px 10px;
             border-radius: 6px;
             font-weight: 500;
-        }
+        }}
 
-        .quick-prompts {
+        .quick-prompts {{
             padding: 12px 24px;
             display: flex;
             gap: 8px;
             overflow-x: auto;
             border-top: 1px solid var(--panel-border);
             background: rgba(15, 23, 42, 0.3);
-        }
+        }}
 
-        .prompt-chip {
+        .prompt-chip {{
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid var(--panel-border);
             color: var(--text-muted);
@@ -268,23 +297,23 @@ HTML_CONTENT = """<!DOCTYPE html>
             cursor: pointer;
             white-space: nowrap;
             transition: all 0.2s ease;
-        }
+        }}
 
-        .prompt-chip:hover {
+        .prompt-chip:hover {{
             background: rgba(56, 189, 248, 0.12);
             border-color: var(--accent-blue);
             color: var(--text-main);
-        }
+        }}
 
-        .input-bar {
+        .input-bar {{
             padding: 18px 24px;
             border-top: 1px solid var(--panel-border);
             display: flex;
             gap: 12px;
             background: rgba(15, 23, 42, 0.5);
-        }
+        }}
 
-        input[type="text"] {
+        input[type="text"] {{
             flex: 1;
             background: rgba(15, 23, 42, 0.7);
             border: 1px solid var(--panel-border);
@@ -294,14 +323,14 @@ HTML_CONTENT = """<!DOCTYPE html>
             font-size: 15px;
             outline: none;
             transition: border-color 0.2s ease;
-        }
+        }}
 
-        input[type="text"]:focus {
+        input[type="text"]:focus {{
             border-color: var(--accent-blue);
             box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
-        }
+        }}
 
-        button {
+        button {{
             background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
             border: none;
             color: white;
@@ -310,18 +339,18 @@ HTML_CONTENT = """<!DOCTYPE html>
             border-radius: 12px;
             cursor: pointer;
             transition: opacity 0.2s ease;
-        }
+        }}
 
-        button:hover {
+        button:hover {{
             opacity: 0.9;
-        }
+        }}
 
-        button:disabled {
+        button:disabled {{
             opacity: 0.5;
             cursor: not-allowed;
-        }
+        }}
 
-        .typing-indicator {
+        .typing-indicator {{
             display: flex;
             gap: 4px;
             padding: 12px 18px;
@@ -329,53 +358,53 @@ HTML_CONTENT = """<!DOCTYPE html>
             border: 1px solid var(--panel-border);
             border-radius: 16px;
             width: fit-content;
-        }
+        }}
 
-        .dot {
+        .dot {{
             width: 8px;
             height: 8px;
             background: var(--text-muted);
             border-radius: 50%;
             animation: bounce 1.4s infinite ease-in-out both;
-        }
+        }}
 
-        .dot:nth-child(1) { animation-delay: -0.32s; }
-        .dot:nth-child(2) { animation-delay: -0.16s; }
+        .dot:nth-child(1) {{ animation-delay: -0.32s; }}
+        .dot:nth-child(2) {{ animation-delay: -0.16s; }}
 
-        @keyframes bounce {
-            0%, 80%, 100% { transform: scale(0); }
-            40% { transform: scale(1.0); }
-        }
+        @keyframes bounce {{
+            0%, 80%, 100% {{ transform: scale(0); }}
+            40% {{ transform: scale(1.0); }}
+        }}
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <div class="header-title">
-                <h2 style="font-size: 18px; font-weight: 600;">⚡ Federated Shield AI Agent</h2>
+                <h2 style="font-size: 18px; font-weight: 600;">⚡ Federated Shield AI Agent (Direct PyTorch Mode)</h2>
             </div>
             <div class="status-badge">
                 <div class="pulse-dot"></div>
-                FL Simulation Engine & Agent Online
+                {mode_status_text}
             </div>
         </div>
 
         <div class="chat-box" id="chatBox">
             <div class="message-row agent">
-                <div class="bubble">Yes! I can perform, trigger, and manage Federated Learning tasks directly. You can ask me to run an FL simulation round, check node statuses, calculate privacy budgets, or report metrics!</div>
+                <div class="bubble">Hello! I am running in Direct PyTorch Mode without Ollama. You can ask me to run FL simulations, check node statuses, calculate DP noise, or evaluate metrics!</div>
                 <div class="meta">Agent</div>
             </div>
         </div>
 
         <div class="quick-prompts">
-            <div class="prompt-chip" onclick="sendQuickPrompt('Run a 2 round federated simulation with 2 clients')">🚀 Run FL Simulation</div>
-            <div class="prompt-chip" onclick="sendQuickPrompt('Check FL status of node-01')">🔍 Node Status</div>
-            <div class="prompt-chip" onclick="sendQuickPrompt('Calculate DP privacy noise for epsilon=1.0 and clip_norm=1.0')">🔒 DP Privacy Calculation</div>
+            <div class="prompt-chip" onclick="sendQuickPrompt('Run a federated simulation')">🚀 Run FL Simulation</div>
+            <div class="prompt-chip" onclick="sendQuickPrompt('Check status of node-01')">🔍 Node Status</div>
+            <div class="prompt-chip" onclick="sendQuickPrompt('Calculate DP privacy noise')">🔒 DP Privacy Calculation</div>
             <div class="prompt-chip" onclick="sendQuickPrompt('Fetch FL metrics for round 2')">📊 Round 2 Metrics</div>
         </div>
 
         <div class="input-bar">
-            <input type="text" id="userInput" placeholder="Command the agent to run FL tasks or ask queries..." onkeypress="handleKeyPress(event)" />
+            <input type="text" id="userInput" placeholder="Command the agent to run FL tasks without Ollama..." onkeypress="handleKeyPress(event)" />
             <button id="sendBtn" onclick="sendMessage()">Send</button>
         </div>
     </div>
@@ -385,36 +414,36 @@ HTML_CONTENT = """<!DOCTYPE html>
         const userInput = document.getElementById('userInput');
         const sendBtn = document.getElementById('sendBtn');
 
-        function handleKeyPress(e) {
+        function handleKeyPress(e) {{
             if (e.key === 'Enter') sendMessage();
-        }
+        }}
 
-        function sendQuickPrompt(promptText) {
+        function sendQuickPrompt(promptText) {{
             userInput.value = promptText;
             sendMessage();
-        }
+        }}
 
-        function appendMessage(role, text, tools = []) {
+        function appendMessage(role, text, tools = []) {{
             const row = document.createElement('div');
-            row.className = `message-row ${role}`;
+            row.className = `message-row ${{role}}`;
 
             let toolsHtml = '';
-            if (tools && tools.length > 0) {
+            if (tools && tools.length > 0) {{
                 toolsHtml = '<div class="tools-used">' + 
-                    tools.map(t => `<span class="tool-tag">⚡ Executed Tool: ${t}</span>`).join('') + 
+                    tools.map(t => `<span class="tool-tag">⚡ Executed Tool: ${{t}}</span>`).join('') + 
                     '</div>';
-            }
+            }}
 
             row.innerHTML = `
-                ${toolsHtml}
-                <div class="bubble">${escapeHtml(text)}</div>
-                <div class="meta">${role === 'user' ? 'You' : 'Agent'}</div>
+                ${{toolsHtml}}
+                <div class="bubble">${{escapeHtml(text)}}</div>
+                <div class="meta">${{role === 'user' ? 'You' : 'Agent'}}</div>
             `;
             chatBox.appendChild(row);
             chatBox.scrollTop = chatBox.scrollHeight;
-        }
+        }}
 
-        function appendTypingIndicator() {
+        function appendTypingIndicator() {{
             const row = document.createElement('div');
             row.className = 'message-row agent';
             row.id = 'typingIndicator';
@@ -427,20 +456,20 @@ HTML_CONTENT = """<!DOCTYPE html>
             `;
             chatBox.appendChild(row);
             chatBox.scrollTop = chatBox.scrollHeight;
-        }
+        }}
 
-        function removeTypingIndicator() {
+        function removeTypingIndicator() {{
             const ind = document.getElementById('typingIndicator');
             if (ind) ind.remove();
-        }
+        }}
 
-        function escapeHtml(text) {
+        function escapeHtml(text) {{
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
-        }
+        }}
 
-        async function sendMessage() {
+        async function sendMessage() {{
             const query = userInput.value.trim();
             if (!query) return;
 
@@ -451,30 +480,30 @@ HTML_CONTENT = """<!DOCTYPE html>
 
             appendTypingIndicator();
 
-            try {
-                const res = await fetch('/api/chat', {
+            try {{
+                const res = await fetch('/api/chat', {{
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: query })
-                });
+                    headers: {{ 'Content-Type': 'application/json' }},
+                    body: JSON.stringify({{ message: query }})
+                }});
 
                 const data = await res.json();
                 removeTypingIndicator();
 
-                if (data.response) {
+                if (data.response) {{
                     appendMessage('agent', data.response, data.tools_executed || []);
-                } else {
+                }} else {{
                     appendMessage('agent', 'Error: Could not process request.');
-                }
-            } catch (err) {
+                }}
+            }} catch (err) {{
                 removeTypingIndicator();
                 appendMessage('agent', 'Network Error: Failed to reach backend agent server.');
-            } finally {
+            }} finally {{
                 userInput.disabled = false;
                 sendBtn.disabled = false;
                 userInput.focus();
-            }
-        }
+            }}
+        }}
     </script>
 </body>
 </html>
@@ -495,7 +524,7 @@ class AgentChatHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps({"status": "ok", "ollama": is_ollama_available()}).encode("utf-8"))
+            self.wfile.write(json.dumps({"status": "ok", "mode": "pytorch_standalone" if not USE_OLLAMA else "ollama"}).encode("utf-8"))
         else:
             self.send_response(404)
             self.end_headers()
@@ -535,13 +564,10 @@ class AgentChatHandler(BaseHTTPRequestHandler):
 
 
 def run_server(port: int = 8080):
-    if not is_ollama_available():
-        logger.error("Ollama is not running. Please start Ollama first.")
-        sys.exit(1)
-
     server_address = ("", port)
     httpd = HTTPServer(server_address, AgentChatHandler)
-    print(f"\n🚀 Federated Shield Agent Server is live at: http://localhost:{port}")
+    mode_str = "PyTorch Standalone (No Ollama)" if not USE_OLLAMA else "Ollama Local"
+    print(f"\n🚀 Federated Shield Agent Server ({mode_str}) is live at: http://localhost:{port}")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
@@ -550,5 +576,5 @@ def run_server(port: int = 8080):
 
 
 if __name__ == "__main__":
-    port = int(sys.argv[1]) if len(sys.argv) > 1 else 8080
+    port = int(sys.argv[1]) if len(sys.argv) > 1 and sys.argv[1].isdigit() else 8080
     run_server(port)
