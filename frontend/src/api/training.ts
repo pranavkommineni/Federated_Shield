@@ -1,41 +1,14 @@
 import { apiClient } from './client';
-import { RoundMetric, TrainingStatus, TrainingStartPayload } from '../types/training';
+import { TrainingStatus, RoundMetric, StartTrainingPayload } from '../types/training';
 
-export const MOCK_HISTORY: RoundMetric[] = [
-  { id: 1, runId: 'run_init', roundNumber: 1, totalRounds: 5, accuracy: 0.54, loss: 1.82, epsilonSpent: 0.44, cumulativeEpsilon: 0.44, participatingOrgs: ['Hospital Alpha (Cardiology)', 'Medical Center Beta (Oncology)'], orgStatuses: {}, durationSeconds: 2.4, status: 'completed', timestamp: '2026-08-18T18:00:00Z' },
-  { id: 2, runId: 'run_init', roundNumber: 2, totalRounds: 5, accuracy: 0.69, loss: 1.25, epsilonSpent: 0.45, cumulativeEpsilon: 0.89, participatingOrgs: ['Hospital Alpha (Cardiology)', 'Medical Center Beta (Oncology)'], orgStatuses: {}, durationSeconds: 2.5, status: 'completed', timestamp: '2026-08-18T18:02:30Z' },
-  { id: 3, runId: 'run_init', roundNumber: 3, totalRounds: 5, accuracy: 0.79, loss: 0.88, epsilonSpent: 0.46, cumulativeEpsilon: 1.35, participatingOrgs: ['Hospital Alpha (Cardiology)', 'Medical Center Beta (Oncology)'], orgStatuses: {}, durationSeconds: 2.4, status: 'completed', timestamp: '2026-08-18T18:05:00Z' },
-  { id: 4, runId: 'run_init', roundNumber: 4, totalRounds: 5, accuracy: 0.87, loss: 0.55, epsilonSpent: 0.45, cumulativeEpsilon: 1.80, participatingOrgs: ['Hospital Alpha (Cardiology)', 'Medical Center Beta (Oncology)'], orgStatuses: {}, durationSeconds: 2.5, status: 'completed', timestamp: '2026-08-18T18:07:30Z' },
-  { id: 5, runId: 'run_init', roundNumber: 5, totalRounds: 5, accuracy: 0.92, loss: 0.32, epsilonSpent: 0.44, cumulativeEpsilon: 2.24, participatingOrgs: ['Hospital Alpha (Cardiology)', 'Medical Center Beta (Oncology)'], orgStatuses: {}, durationSeconds: 2.6, status: 'completed', timestamp: '2026-08-18T18:10:00Z' },
+export const MOCK_ROUNDS: RoundMetric[] = [
+  { id: 1, runId: 'run_init', roundNumber: 1, totalRounds: 5, accuracy: 0.54, loss: 1.82, epsilonSpent: 0.44, cumulativeEpsilon: 0.44, participatingOrgs: ['AIIMS New Delhi (Cardiology)', 'Apollo Hospitals Chennai (Oncology)'], orgStatuses: {}, durationSeconds: 2.4, status: 'completed', timestamp: '2026-08-18T18:00:00Z' },
+  { id: 2, runId: 'run_init', roundNumber: 2, totalRounds: 5, accuracy: 0.69, loss: 1.25, epsilonSpent: 0.45, cumulativeEpsilon: 0.89, participatingOrgs: ['AIIMS New Delhi (Cardiology)', 'Apollo Hospitals Chennai (Oncology)'], orgStatuses: {}, durationSeconds: 2.5, status: 'completed', timestamp: '2026-08-18T18:02:30Z' },
+  { id: 3, runId: 'run_init', roundNumber: 3, totalRounds: 5, accuracy: 0.79, loss: 0.88, epsilonSpent: 0.46, cumulativeEpsilon: 1.35, participatingOrgs: ['AIIMS New Delhi (Cardiology)', 'Apollo Hospitals Chennai (Oncology)'], orgStatuses: {}, durationSeconds: 2.4, status: 'completed', timestamp: '2026-08-18T18:05:00Z' },
+  { id: 4, runId: 'run_init', roundNumber: 4, totalRounds: 5, accuracy: 0.87, loss: 0.55, epsilonSpent: 0.45, cumulativeEpsilon: 1.80, participatingOrgs: ['AIIMS New Delhi (Cardiology)', 'Apollo Hospitals Chennai (Oncology)'], orgStatuses: {}, durationSeconds: 2.5, status: 'completed', timestamp: '2026-08-18T18:07:30Z' },
+  { id: 5, runId: 'run_init', roundNumber: 5, totalRounds: 5, accuracy: 0.92, loss: 0.32, epsilonSpent: 0.44, cumulativeEpsilon: 2.24, participatingOrgs: ['AIIMS New Delhi (Cardiology)', 'Apollo Hospitals Chennai (Oncology)'], orgStatuses: {}, durationSeconds: 2.6, status: 'completed', timestamp: '2026-08-18T18:10:00Z' },
 ];
 
-/**
- * Start a new federated learning training run (Admin View)
- * TODO: Hooked to backend POST /training/start
- */
-export async function startTraining(payload: TrainingStartPayload): Promise<any> {
-  const res = await apiClient.post('/training/start', {
-    rounds: payload.rounds,
-    org_names: payload.orgNames,
-    target_accuracy: payload.targetAccuracy,
-    max_epsilon: payload.maxEpsilon,
-  });
-  return res.data;
-}
-
-/**
- * Stop active training run (Admin View)
- * TODO: Hooked to backend POST /training/stop
- */
-export async function stopTraining(): Promise<any> {
-  const res = await apiClient.post('/training/stop');
-  return res.data;
-}
-
-/**
- * Fetch current training coordinator status
- * TODO: Hooked to backend GET /training/status
- */
 export async function fetchTrainingStatus(): Promise<TrainingStatus> {
   try {
     const res = await apiClient.get('/training/status');
@@ -54,43 +27,54 @@ export async function fetchTrainingStatus(): Promise<TrainingStatus> {
     return {
       isTraining: false,
       status: 'idle',
-      runId: null,
-      currentRound: 0,
-      totalRounds: 0,
-      activeOrgs: [],
-      latestAccuracy: 0.92,
-      latestLoss: 0.32,
+      runId: 'mock_run_1',
+      currentRound: 5,
+      totalRounds: 5,
+      activeOrgs: ['AIIMS New Delhi (Cardiology)', 'Apollo Hospitals Chennai (Oncology)', 'Fortis Healthcare Bengaluru (Neurology)'],
+      latestAccuracy: 0.924,
+      latestLoss: 0.318,
       cumulativeEpsilon: 2.24,
     };
   }
 }
 
-/**
- * Fetch historical training rounds from SQLite
- * TODO: Hooked to backend GET /training/history
- */
 export async function fetchTrainingHistory(): Promise<RoundMetric[]> {
   try {
-    const res = await apiClient.get<any[]>('/training/history?limit=30');
+    const res = await apiClient.get<any[]>('/training/history');
     if (res.data && res.data.length > 0) {
-      return res.data.map((r) => ({
-        id: r.id,
-        runId: r.run_id,
-        roundNumber: r.round_number,
-        totalRounds: r.total_rounds,
-        accuracy: r.accuracy,
-        loss: r.loss,
-        epsilonSpent: r.epsilon_spent,
-        cumulativeEpsilon: r.cumulative_epsilon,
-        participatingOrgs: r.participating_orgs || [],
-        orgStatuses: r.org_statuses || {},
-        durationSeconds: r.duration_seconds,
-        status: r.status,
-        timestamp: r.timestamp,
+      return res.data.map((item) => ({
+        id: item.id,
+        runId: item.run_id,
+        roundNumber: item.round_number,
+        totalRounds: item.total_rounds,
+        accuracy: item.accuracy,
+        loss: item.loss,
+        epsilonSpent: item.epsilon_spent,
+        cumulativeEpsilon: item.cumulative_epsilon,
+        participatingOrgs: item.participating_orgs || [],
+        orgStatuses: item.org_statuses || {},
+        durationSeconds: item.duration_seconds,
+        status: item.status,
+        timestamp: item.timestamp,
       }));
     }
-    return MOCK_HISTORY;
+    return MOCK_ROUNDS;
   } catch (error) {
-    return MOCK_HISTORY;
+    return MOCK_ROUNDS;
   }
+}
+
+export async function startTraining(payload: StartTrainingPayload): Promise<any> {
+  const res = await apiClient.post('/training/start', {
+    rounds: payload.rounds,
+    target_accuracy: payload.targetAccuracy,
+    max_epsilon: payload.maxEpsilon,
+    org_names: payload.orgNames,
+  });
+  return res.data;
+}
+
+export async function stopTraining(): Promise<any> {
+  const res = await apiClient.post('/training/stop');
+  return res.data;
 }

@@ -38,23 +38,24 @@ class AppErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div style={{
-          backgroundColor: '#070b14',
-          color: '#f87171',
+          backgroundColor: '#f8fafc',
+          color: '#dc2626',
           padding: '40px',
-          fontFamily: 'monospace',
+          fontFamily: 'system-ui, sans-serif',
           minHeight: '100vh',
         }}>
-          <h2 style={{ color: '#00f2fe', fontSize: '24px', marginBottom: '16px' }}>
-            Federated Shield UI Runtime Notice
+          <h2 style={{ color: '#0f172a', fontSize: '20px', fontWeight: 'bold', marginBottom: '12px' }}>
+            Federated Shield UI Notice
           </h2>
-          <p style={{ color: '#e2e8f0', fontSize: '16px', marginBottom: '12px' }}>
+          <p style={{ color: '#475569', fontSize: '14px', marginBottom: '12px' }}>
             {this.state.error?.message}
           </p>
           <pre style={{
-            backgroundColor: '#0e1526',
+            backgroundColor: '#ffffff',
+            border: '1px solid #e2e8f0',
             padding: '16px',
             borderRadius: '8px',
-            color: '#94a3b8',
+            color: '#64748b',
             overflowX: 'auto',
             fontSize: '12px',
           }}>
@@ -64,12 +65,12 @@ class AppErrorBoundary extends Component<Props, State> {
             onClick={() => window.location.href = '/login'}
             style={{
               marginTop: '20px',
-              backgroundColor: '#00f2fe',
-              color: '#070b14',
+              backgroundColor: '#2563eb',
+              color: '#ffffff',
               border: 'none',
-              padding: '10px 20px',
+              padding: '8px 16px',
               borderRadius: '8px',
-              fontWeight: 'bold',
+              fontWeight: '600',
               cursor: 'pointer',
             }}
           >

@@ -1,20 +1,23 @@
-"""Router for Privacy-Preserved AI Chat with ai-core integration."""
+"""AI Chat Router forwarding clinical queries to ai-core."""
 
-from typing import Optional
-from fastapi import APIRouter, status
+import logging
+from typing import Optional, Dict, Any
+from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 from app.services.ai_agent_service import ai_agent_service
 
-router = APIRouter(prefix="/chat", tags=["AI Clinical Agent Chat"])
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/chat", tags=["AI Clinical Chat Agent"])
 
 
 class ChatRequest(BaseModel):
-    prompt: str = Field(..., description="User message to the AI agent")
-    org_name: Optional[str] = Field("Hospital Alpha (Cardiology)", description="User's organization name")
-    user_name: Optional[str] = Field("Dr. Sarah Connor", description="User's display name")
+    message: str = Field(..., min_length=1, description="Clinical or privacy query from user")
+    org_name: Optional[str] = Field("AIIMS New Delhi (Cardiology)", description="User's organization name")
+    user_name: Optional[str] = Field("Dr. Priya Nair", description="User's display name")
 
 
-class PrivacyGuarantee(BaseModel):
+class PrivacyGuaranteeResponse(BaseModel):
     epsilon_bound: str
     mechanism: str
     model_checkpoint: str
@@ -23,25 +26,30 @@ class PrivacyGuarantee(BaseModel):
 
 class ChatResponse(BaseModel):
     id: str
-    sender: str
+    sender: str = "assistant"
     content: str
     timestamp: str
-    source: Optional[str] = "federated_shield_core"
-    privacy_guarantee: PrivacyGuarantee
+    source: str
+    privacy_guarantee: Optional[PrivacyGuaranteeResponse] = None
 
 
-@router.post(
-    "",
-    response_model=ChatResponse,
-    status_code=status.HTTP_200_OK,
-    summary="Chat with Federated Shield AI Agent",
-    description="Send a message to the AI Agent powered by ai-core (Ollama Qwen2.5 + FL Tool Registry).",
-)
-def send_chat_message(payload: ChatRequest) -> ChatResponse:
-    """Process query through ai-core agent service with tool calling & privacy guarantees."""
-    result = ai_agent_service.process_chat(
-        prompt=payload.prompt,
-        org_name=payload.org_name or "Hospital Alpha (Cardiology)",
-        user_name=payload.user_name or "Dr. Sarah Connor",
-    )
-    return ChatResponse(**result)
+@router.post("", response_model=ChatResponse, status_code=status.HTTP_200_OK)
+async def chat_with_agent(payload: ChatRequest):
+    """
+    POST /chat:
+    Receives user query, routes through ai-core (Ollama agent or fallback engine),
+    and returns friendly clinical insights.
+    """
+    try:
+        result = ai_agent_service.process_chat(
+            prompt=payload.message,
+            org_name=payload.org_name or "AIIMS New Delhi (Cardiology)",
+            user_name=payload.user_name or "Dr. Priya Nair",
+        )
+        return result
+    except Exception as e:
+        logger.error(f"Error processing chat in ai-core: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"AI Agent inference failed: {str(e)}",
+        )

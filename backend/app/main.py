@@ -31,8 +31,8 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan context manager: handles startup and shutdown events."""
-    logger.info("Initializing database tables and default records...")
-    init_db()
+    logger.info("Initializing database tables and Indian healthcare records...")
+    init_db(force_reseed=True)
     logger.info(f"{settings.PROJECT_NAME} (v{settings.PROJECT_VERSION}) started successfully.")
     yield
     logger.info("Shutting down Federated Learning backend...")
@@ -73,6 +73,15 @@ def create_app() -> FastAPI:
     app.include_router(inference_router)
     app.include_router(node_telemetry_router)
     app.include_router(chat_router)
+
+    @app.post("/db/seed", tags=["Database"])
+    def trigger_seed() -> dict:
+        """Trigger a complete database wipe and re-seed with Indian healthcare data."""
+        try:
+            init_db(force_reseed=True)
+            return {"status": "success", "message": "Database reseeded successfully with Indian entities."}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
 
     @app.get("/", tags=["Health"])
     def root_status() -> dict:

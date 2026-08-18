@@ -1,21 +1,22 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore, MOCK_USERS } from '../../store/useAuthStore';
+import { Shield, Building2, User as UserIcon, ArrowRight, Lock } from 'lucide-react';
+import { useAuthStore } from '../../store/useAuthStore';
 import { UserRole } from '../../types/user';
 
 export const Login: React.FC = () => {
   const { loginAs } = useAuthStore();
   const navigate = useNavigate();
 
-  const handleSelectRole = (role: UserRole, userKey?: string) => {
-    if (userKey && MOCK_USERS[userKey]) {
-      loginAs(role, MOCK_USERS[userKey]);
+  const handleSelectRole = (role: UserRole) => {
+    loginAs(role);
+    if (role === 'admin') {
+      navigate('/admin');
+    } else if (role === 'org_admin') {
+      navigate('/org/1');
     } else {
-      loginAs(role);
+      navigate('/chat');
     }
-    if (role === 'admin') navigate('/admin');
-    else if (role === 'org_admin') navigate('/org/1');
-    else navigate('/chat');
   };
 
   const roles = [
@@ -23,138 +24,98 @@ export const Login: React.FC = () => {
       key: 'admin',
       userKey: 'admin',
       role: 'admin' as UserRole,
-      emoji: '👑',
-      label: 'Platform Admin',
-      title: 'Global Admin',
-      name: 'Dr. Evelyn Vance',
-      desc: 'Full platform visibility. Start/stop FL rounds, live convergence charts, privacy ε budget audit across all hospital silos.',
-      color: '#00f2fe',
-      border: 'rgba(0, 242, 254, 0.4)',
-      bg: 'rgba(0, 242, 254, 0.07)',
+      icon: <Shield className="w-5 h-5 text-blue-600" />,
+      iconBg: 'bg-blue-50 border-blue-100',
+      badge: 'Platform Owner',
+      badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
+      title: 'Global Admin Console',
+      name: 'Dr. Ananya Sharma',
+      desc: 'Coordinate federated training rounds, view convergence curves, review differential privacy budgets, and inspect hospital silo nodes.',
     },
     {
       key: 'org_admin',
       userKey: 'org_admin_alpha',
       role: 'org_admin' as UserRole,
-      emoji: '🏥',
-      label: 'Hospital Silo Lead',
-      title: 'Organization Admin',
+      icon: <Building2 className="w-5 h-5 text-violet-600" />,
+      iconBg: 'bg-violet-50 border-violet-100',
+      badge: 'Hospital Silo Lead',
+      badgeColor: 'bg-violet-50 text-violet-700 border-violet-200',
+      title: 'Organization Portal',
       name: 'Dr. Rajesh Varma',
-      desc: 'Manage Hospital Alpha edge devices, local DP calibration, and grant/revoke AI chat access for clinical staff.',
-      color: '#a855f7',
-      border: 'rgba(168, 85, 247, 0.4)',
-      bg: 'rgba(168, 85, 247, 0.07)',
+      desc: 'AIIMS New Delhi cardiology node. View local client hardware telemetry, local datasets, and manage staff AI permissions.',
     },
     {
       key: 'end_user',
       userKey: 'end_user_granted',
       role: 'end_user' as UserRole,
-      emoji: '💬',
-      label: 'Clinical Practitioner',
-      title: 'End-User / Clinician',
-      name: 'Dr. Sarah Connor',
-      desc: 'Query the global federated AI model via private conversational interface. Zero visibility into training internals.',
-      color: '#34d399',
-      border: 'rgba(52, 211, 153, 0.4)',
-      bg: 'rgba(52, 211, 153, 0.07)',
+      icon: <UserIcon className="w-5 h-5 text-emerald-600" />,
+      iconBg: 'bg-emerald-50 border-emerald-100',
+      badge: 'Clinical Practitioner',
+      badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      title: 'Clinical AI Assistant',
+      name: 'Dr. Priya Nair',
+      desc: 'Query the global trained federated model for clinical evaluations with zero exposure to raw training records.',
     },
   ];
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: '#070b14',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '40px 24px',
-      fontFamily: "'Inter', system-ui, sans-serif",
-      position: 'relative',
-      overflow: 'hidden',
-    }}>
-      {/* Background glow orbs */}
-      <div style={{ position: 'absolute', top: '20%', left: '15%', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,242,254,0.06) 0%, transparent 70%)', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', bottom: '20%', right: '15%', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(168,85,247,0.06) 0%, transparent 70%)', pointerEvents: 'none' }} />
-
-      {/* Header */}
-      <div style={{ textAlign: 'center', marginBottom: 48, position: 'relative', zIndex: 1 }}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(0,242,254,0.08)', border: '1px solid rgba(0,242,254,0.2)', padding: '6px 16px', borderRadius: 999, color: '#00f2fe', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 20 }}>
-          🛡️ Smart India Hackathon (SIH) 2026 Prototype
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, marginBottom: 12 }}>
-          <div style={{ width: 52, height: 52, borderRadius: 16, background: 'linear-gradient(135deg, #00f2fe, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, boxShadow: '0 0 24px rgba(0,242,254,0.3)' }}>
-            🛡️
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-4 font-sans text-slate-900">
+      <div className="max-w-4xl w-full">
+        {/* Brand Header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-50 border border-blue-200 text-blue-600 mb-3 shadow-sm">
+            <Shield size={24} />
           </div>
-          <h1 style={{ fontSize: 28, fontWeight: 900, margin: 0, color: '#f8fafc', letterSpacing: '-0.03em' }}>
-            FEDERATED<span style={{ color: '#00f2fe' }}>SHIELD</span>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+            Federated Shield
           </h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-lg mx-auto">
+            Privacy-Preserving Federated Learning & Clinical Intelligence Platform
+          </p>
         </div>
 
-        <p style={{ color: '#64748b', fontSize: 14, maxWidth: 520, margin: '0 auto', lineHeight: 1.6 }}>
-          Privacy-Preserving Federated Learning Platform with Differential Privacy, Secure Multi-Party Aggregation, and Role-Based Healthcare Governance.
-        </p>
-      </div>
+        {/* 3 Role Persona Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {roles.map((item) => (
+            <div
+              key={item.key}
+              onClick={() => handleSelectRole(item.role)}
+              className="bg-white border border-slate-200 hover:border-slate-300 rounded-xl p-5 cursor-pointer shadow-sm hover:shadow-md transition-all flex flex-col justify-between group"
+            >
+              <div>
+                <div className="flex items-center justify-between mb-3.5">
+                  <div className={`w-9 h-9 rounded-lg ${item.iconBg} border flex items-center justify-center`}>
+                    {item.icon}
+                  </div>
+                  <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${item.badgeColor}`}>
+                    {item.badge}
+                  </span>
+                </div>
 
-      {/* Role Cards */}
-      <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', justifyContent: 'center', maxWidth: 1100, width: '100%', position: 'relative', zIndex: 1 }}>
-        {roles.map((r) => (
-          <div
-            key={r.key}
-            onClick={() => handleSelectRole(r.role, r.userKey)}
-            style={{
-              flex: '1 1 300px',
-              maxWidth: 340,
-              background: '#121a2e',
-              border: `1px solid rgba(255,255,255,0.08)`,
-              borderRadius: 20,
-              padding: '28px 24px',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLDivElement).style.border = `1px solid ${r.border}`;
-              (e.currentTarget as HTMLDivElement).style.background = r.bg;
-              (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)';
-              (e.currentTarget as HTMLDivElement).style.boxShadow = `0 8px 32px ${r.border}`;
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLDivElement).style.border = '1px solid rgba(255,255,255,0.08)';
-              (e.currentTarget as HTMLDivElement).style.background = '#121a2e';
-              (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)';
-              (e.currentTarget as HTMLDivElement).style.boxShadow = 'none';
-            }}
-          >
-            <div>
-              <div style={{ width: 52, height: 52, borderRadius: 14, background: `${r.bg}`, border: `1px solid ${r.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, marginBottom: 16 }}>
-                {r.emoji}
+                <h2 className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                  {item.title}
+                </h2>
+                <div className="text-xs font-semibold text-slate-700 mt-0.5 mb-2">
+                  {item.name}
+                </div>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  {item.desc}
+                </p>
               </div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: r.color, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>
-                {r.label}
-              </div>
-              <h3 style={{ fontSize: 20, fontWeight: 800, color: '#f8fafc', margin: '0 0 10px 0' }}>
-                {r.title}
-              </h3>
-              <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.6, margin: '0 0 20px 0' }}>
-                {r.desc}
-              </p>
-            </div>
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: r.color }}>
-                Login as {r.name}
-              </span>
-              <span style={{ color: r.color, fontSize: 18 }}>→</span>
-            </div>
-          </div>
-        ))}
-      </div>
 
-      <div style={{ marginTop: 40, fontSize: 12, color: '#334155', textAlign: 'center' }}>
-        Demo Mode • Click any role card above to test that perspective end-to-end
+              <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-blue-600">
+                <span>Enter Workspace</span>
+                <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Security Footer Note */}
+        <div className="mt-8 text-center text-xs text-slate-500 flex items-center justify-center gap-1.5">
+          <Lock size={13} className="text-emerald-600" />
+          <span>Differential Privacy & Secure Multi-Party Aggregation Active</span>
+        </div>
       </div>
     </div>
   );

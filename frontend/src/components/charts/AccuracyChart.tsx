@@ -16,7 +16,7 @@ interface AccuracyChartProps {
   height?: number;
 }
 
-export const AccuracyChart: React.FC<AccuracyChartProps> = ({ data, height = 320 }) => {
+export const AccuracyChart: React.FC<AccuracyChartProps> = ({ data, height = 300 }) => {
   const chartData = data.map((item) => ({
     round: `R${item.roundNumber}`,
     accuracy: Math.round(item.accuracy * 1000) / 10,
@@ -26,9 +26,9 @@ export const AccuracyChart: React.FC<AccuracyChartProps> = ({ data, height = 320
 
   if (chartData.length === 0) {
     return (
-      <div className="h-[320px] flex flex-col items-center justify-center text-slate-500 border border-dashed border-slate-800 rounded-xl">
-        <p className="text-sm font-medium">No training rounds recorded yet</p>
-        <p className="text-xs text-slate-600 mt-1">Start a training round to stream live accuracy and loss curves</p>
+      <div className="h-[300px] flex flex-col items-center justify-center text-slate-400 border border-dashed border-slate-200 rounded-xl">
+        <p className="text-xs font-medium">No training rounds recorded yet</p>
+        <p className="text-[11px] text-slate-500 mt-1">Start a training round to view accuracy & loss curves</p>
       </div>
     );
   }
@@ -39,51 +39,52 @@ export const AccuracyChart: React.FC<AccuracyChartProps> = ({ data, height = 320
         <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
           <defs>
             <linearGradient id="accGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#00f2fe" stopOpacity={0.35} />
-              <stop offset="95%" stopColor="#00f2fe" stopOpacity={0.0} />
+              <stop offset="5%" stopColor="#2563eb" stopOpacity={0.15} />
+              <stop offset="95%" stopColor="#2563eb" stopOpacity={0.0} />
             </linearGradient>
             <linearGradient id="lossGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#a855f7" stopOpacity={0.35} />
-              <stop offset="95%" stopColor="#a855f7" stopOpacity={0.0} />
+              <stop offset="5%" stopColor="#7c3aed" stopOpacity={0.15} />
+              <stop offset="95%" stopColor="#7c3aed" stopOpacity={0.0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-          <XAxis dataKey="round" stroke="#64748b" tick={{ fontSize: 12, fontFamily: 'JetBrains Mono' }} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+          <XAxis dataKey="round" stroke="#94a3b8" tick={{ fontSize: 11 }} />
           <YAxis
             yAxisId="left"
-            stroke="#00f2fe"
+            stroke="#2563eb"
             domain={[0, 100]}
-            tick={{ fontSize: 12, fontFamily: 'JetBrains Mono' }}
+            tick={{ fontSize: 11 }}
             unit="%"
           />
           <YAxis
             yAxisId="right"
             orientation="right"
-            stroke="#a855f7"
+            stroke="#7c3aed"
             domain={[0, 'auto']}
-            tick={{ fontSize: 12, fontFamily: 'JetBrains Mono' }}
+            tick={{ fontSize: 11 }}
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: '#0e1526',
-              borderColor: 'rgba(255,255,255,0.1)',
-              borderRadius: '12px',
-              color: '#f8fafc',
-              fontFamily: 'Inter',
+              backgroundColor: '#ffffff',
+              borderColor: '#e2e8f0',
+              borderRadius: '8px',
+              color: '#0f172a',
+              fontSize: '12px',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
             }}
           />
           <Legend
             verticalAlign="top"
             align="right"
-            wrapperStyle={{ paddingBottom: '10px', fontSize: '12px' }}
+            wrapperStyle={{ paddingBottom: '8px', fontSize: '11px' }}
           />
           <Area
             yAxisId="left"
             type="monotone"
             dataKey="accuracy"
             name="Global Accuracy (%)"
-            stroke="#00f2fe"
-            strokeWidth={3}
+            stroke="#2563eb"
+            strokeWidth={2}
             fillOpacity={1}
             fill="url(#accGradient)"
           />
@@ -92,8 +93,8 @@ export const AccuracyChart: React.FC<AccuracyChartProps> = ({ data, height = 320
             type="monotone"
             dataKey="loss"
             name="Global Loss"
-            stroke="#a855f7"
-            strokeWidth={2}
+            stroke="#7c3aed"
+            strokeWidth={1.5}
             fillOpacity={1}
             fill="url(#lossGradient)"
           />
