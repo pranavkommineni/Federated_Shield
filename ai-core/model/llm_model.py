@@ -15,26 +15,41 @@ def load_qwen_model_and_tokenizer(
     device_map: str = "auto",
 ):
     """
-    Load Qwen tokenizer and base causal language model.
-    
-    Supports offline mode by attempting local system cache loading if network fails,
-    raising an explicit RuntimeError if the model is unavailable on the system.
+    Waterfall Resolution Strategy:
+    1. If Ollama service is present & running locally with target model, return Ollama model wrapper.
+    2. Else if direct model files are present locally (local_files_only), load from system cache.
+    3. Else try online download from Hugging Face Hub.
+    4. Else throw clear error stating LLM is unavailable.
     """
-    from transformers import AutoModelForCausalLM, AutoTokenizer
-    
-    tokenizer = None
+    # 1. Check if Ollama is present locally
     try:
-        tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, trust_remote_code=True)
-    except Exception as e_online:
-        logger.warning(f"Online tokenizer load failed for '{model_name_or_path}'. Attempting local system cache...")
+        from model.ollama_model import is_ollama_available, OllamaModelWrapper
+        if is_ollama_available(model_name="qwen2.5:3b"):
+            logger.info("Waterfall Step 1: Ollama detected locally with 'qwen2.5:3b'. Using local Ollama model.")
+            return OllamaModelWrapper(model_name="qwen2.5:3b"), None
+    except Exception as e_ollama:
+        logger.debug(f"Ollama check skipped: {e_ollama}")
+
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+
+    tokenizer = None
+
+    # 2. Check if direct model present locally
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, local_files_only=True, trust_remote_code=True)
+        logger.info(f"Waterfall Step 2: Direct model '{model_name_or_path}' found locally on system.")
+    except Exception:
+        # 3. Try online download from HF Hub
         try:
-            tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, local_files_only=True, trust_remote_code=True)
-        except Exception as e_offline:
+            logger.info(f"Waterfall Step 3: Local files not found. Attempting online download for '{model_name_or_path}'...")
+            tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, trust_remote_code=True)
+        except Exception as e_online:
+            # 4. Explicit Error
             raise RuntimeError(
-                f"Model '{model_name_or_path}' is unavailable on the system. "
-                f"Offline loading failed and network connection was unsuccessful. "
-                f"Please ensure model weights are cached or provide a valid local path."
-            ) from e_offline
+                f"LLM is unavailable: Ollama is not running locally, "
+                f"no direct model files for '{model_name_or_path}' were found locally, "
+                f"and online download failed ({e_online})."
+            ) from e_online
 
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
@@ -65,19 +80,19 @@ def load_qwen_model_and_tokenizer(
             model_kwargs["torch_dtype"] = torch.float32
 
     try:
-        model = AutoModelForCausalLM.from_pretrained(model_name_or_path, **model_kwargs)
-    except Exception as e_online:
-        logger.warning(f"Online model weights load failed for '{model_name_or_path}'. Attempting local system cache...")
+        model = AutoModelForCausalLM.from_pretrained(model_name_or_path, local_files_only=True, **model_kwargs)
+    except Exception:
         try:
-            model = AutoModelForCausalLM.from_pretrained(model_name_or_path, local_files_only=True, **model_kwargs)
-        except Exception as e_offline:
+            model = AutoModelForCausalLM.from_pretrained(model_name_or_path, **model_kwargs)
+        except Exception as e_final:
             raise RuntimeError(
-                f"Model weights for '{model_name_or_path}' are unavailable on the system. "
-                f"Offline loading failed and network connection was unsuccessful. "
-                f"Please ensure model weights are cached or provide a valid local path."
-            ) from e_offline
+                f"LLM weights are unavailable: Ollama is not running locally, "
+                f"no direct model weights for '{model_name_or_path}' were found locally, "
+                f"and online download failed ({e_final})."
+            ) from e_final
 
     return model, tokenizer
+
 
 
 

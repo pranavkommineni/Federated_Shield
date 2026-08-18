@@ -76,12 +76,15 @@ def test_lora_serialization_mock():
 
 
 def test_offline_model_unavailable_error():
-    """Verify that attempting to load a non-existent offline model raises a clean RuntimeError."""
+    """Verify that attempting to load a non-existent model raises a clean RuntimeError."""
+    from unittest.mock import patch
     try:
         from model.llm_model import load_qwen_model_and_tokenizer
-        with pytest.raises(RuntimeError, match="unavailable on the system"):
-            load_qwen_model_and_tokenizer(model_name_or_path="non_existent_invalid_model_path_12345")
+        with patch("model.ollama_model.is_ollama_available", return_value=False):
+            with pytest.raises(RuntimeError, match="LLM is unavailable"):
+                load_qwen_model_and_tokenizer(model_name_or_path="non_existent_invalid_model_path_12345")
     except ImportError:
         pass
+
 
 
