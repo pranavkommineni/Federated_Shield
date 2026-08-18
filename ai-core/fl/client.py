@@ -14,11 +14,12 @@ if core_dir not in sys.path:
 
 from model.model_config import FLConfig
 from model.serialization import get_parameters, set_parameters
+from training.train_llm import train_local_llm
 
 logger = logging.getLogger(__name__)
 
 class FederixClient(fl.client.NumPyClient):
-    """Flower client for federated learning with FederixNet."""
+    """Flower client for federated learning supporting CNN & LLM models."""
 
     def __init__(self, cid: str, model: nn.Module, train_loader: DataLoader, test_loader: DataLoader, config: FLConfig):
         self.cid = cid
@@ -40,6 +41,20 @@ class FederixClient(fl.client.NumPyClient):
     def fit(self, parameters: list[np.ndarray], config: dict) -> tuple[list[np.ndarray], int, dict]:
         """Train model on local data and return updated parameters."""
         self.set_parameters(parameters)
+
+        # Detect if dataset is text dictionary batches or image tuples
+        sample_batch = next(iter(self.train_loader)) if self.train_loader else None
+        if sample_batch is not None and isinstance(sample_batch, dict) and "input_ids" in sample_batch:
+            avg_loss, total_samples = train_local_llm(
+                peft_model=self.model,
+                train_loader=self.train_loader,
+                epochs=self.config.local_epochs,
+                learning_rate=self.config.learning_rate,
+                device=self.device,
+            )
+            logger.info(f'Client {self.cid} (LLM): trained on {total_samples} samples, loss={avg_loss:.4f}')
+            return get_parameters(self.model), total_samples, {'cid': self.cid, 'loss': avg_loss}
+
         self.model.train()
         optimizer = torch.optim.SGD(self.model.parameters(), lr=self.config.learning_rate)
         criterion = nn.CrossEntropyLoss()
@@ -67,6 +82,24 @@ class FederixClient(fl.client.NumPyClient):
         """Evaluate model on local test data."""
         self.set_parameters(parameters)
         self.model.eval()
+
+        sample_batch = next(iter(self.test_loader)) if self.test_loader else None
+        if sample_batch is not None and isinstance(sample_batch, dict) and "input_ids" in sample_batch:
+            total_loss = 0.0
+            total_samples = 0
+            with torch.no_grad():
+                for batch in self.test_loader:
+                    input_ids = batch["input_ids"].to(self.device)
+                    attention_mask = batch["attention_mask"].to(self.device)
+                    labels = batch["labels"].to(self.device)
+                    outputs = self.model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
+                    batch_size = len(input_ids)
+                    total_loss += outputs.loss.item() * batch_size
+                    total_samples += batch_size
+            avg_loss = total_loss / total_samples if total_samples > 0 else 0.0
+            logger.info(f'Client {self.cid} (LLM): eval loss={avg_loss:.4f}')
+            return avg_loss, total_samples, {'cid': self.cid, 'eval_loss': avg_loss}
+
         criterion = nn.CrossEntropyLoss()
 
         total_loss = 0.0
@@ -88,3 +121,4 @@ class FederixClient(fl.client.NumPyClient):
         logger.info(f'Client {self.cid}: eval loss={avg_loss:.4f}, accuracy={accuracy:.4f}')
 
         return avg_loss, total, {'cid': self.cid, 'accuracy': accuracy}
+

@@ -1,0 +1,143 @@
+"""Flower simulation orchestration for multi-organization FL on single GPU."""
+import logging
+import os
+import sys
+import torch
+from typing import Dict, List, Optional
+import flwr as fl
+from flwr.common import ndarrays_to_parameters
+
+core_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if core_dir not in sys.path:
+    sys.path.insert(0, core_dir)
+
+from model.model_config import FLConfig
+from model.federix_model import create_model
+from model.serialization import get_parameters
+from fl.client import FederixClient
+from fl.strategy import FederixStrategy, SecureFederixStrategy
+from data.domain_datasets import ORG_DOMAINS, get_org_dataset
+from torch.utils.data import DataLoader
+
+logger = logging.getLogger(__name__)
+
+
+def run_fl_simulation(
+    num_rounds: int = 5,
+    num_clients: int = 4,
+    use_secure_agg: bool = False,
+    model_type: str = "qwen",
+    mock_model: bool = False,
+    batch_size: int = 2,
+    local_epochs: int = 1,
+    learning_rate: float = 2e-4,
+) -> fl.server.history.History:
+    """
+    Run single-GPU Flower simulation across simulated organizations.
+    """
+    # Ensure ai-core is in PYTHONPATH for Ray subprocess actors
+    if core_dir not in sys.path:
+        sys.path.insert(0, core_dir)
+    os.environ["PYTHONPATH"] = f"{core_dir}:{os.environ.get('PYTHONPATH', '')}"
+
+    import ray
+    if not ray.is_initialized():
+        try:
+            ray.init(runtime_env={"env_vars": {"PYTHONPATH": core_dir}}, ignore_reinit_error=True)
+        except Exception as e:
+            logger.debug(f"Ray init warning: {e}")
+
+    num_clients = min(num_clients, len(ORG_DOMAINS))
+    org_keys = list(ORG_DOMAINS.keys())[:num_clients]
+    logger.info(f"Starting FL Simulation with {num_clients} org clients ({org_keys}) for {num_rounds} rounds")
+
+    # Load shared initial model and tokenizer
+    tokenizer = None
+    if mock_model or model_type == "cnn":
+        from model.llm_model import MockLLMModel, DummyTokenizer
+        if model_type == "cnn":
+            shared_model = create_model(model_type="cnn")
+        else:
+            shared_model = MockLLMModel()
+            tokenizer = DummyTokenizer()
+    else:
+        from model.llm_model import load_qwen_model_and_tokenizer, apply_lora_to_model
+        logger.info("Loading base Qwen2.5-3B model and tokenizer...")
+        base_model, tokenizer = load_qwen_model_and_tokenizer(load_in_4bit=True)
+        shared_model = apply_lora_to_model(base_model, r=8)
+
+    # Initialize strategy
+    config = FLConfig(
+        num_rounds=num_rounds,
+        min_fit_clients=min(2, num_clients),
+        min_available_clients=num_clients,
+        fraction_fit=1.0,
+        local_epochs=local_epochs,
+        batch_size=batch_size,
+        learning_rate=learning_rate,
+        use_secure_aggregation=use_secure_agg,
+    )
+
+    initial_parameters = ndarrays_to_parameters(get_parameters(shared_model))
+
+    if use_secure_agg:
+        try:
+            strategy = SecureFederixStrategy(config, initial_parameters=initial_parameters)
+        except Exception as e:
+            logger.warning(f"Failed to initialize SecureFederixStrategy ({e}), falling back to FederixStrategy")
+            strategy = FederixStrategy(config, initial_parameters=initial_parameters)
+    else:
+        strategy = FederixStrategy(config, initial_parameters=initial_parameters)
+
+    # Client resources & factory function
+    client_datasets = {}
+    if tokenizer is not None:
+        for org_key in org_keys:
+            ds = get_org_dataset(org_key, tokenizer, max_length=128, multiplier=4)
+            split_idx = int(len(ds) * 0.8)
+            client_datasets[org_key] = {
+                "train": DataLoader(ds.examples[:split_idx], batch_size=batch_size, shuffle=True),
+                "test": DataLoader(ds.examples[split_idx:], batch_size=batch_size, shuffle=False),
+            }
+
+    def client_fn(cid_str: str) -> fl.client.Client:
+        cid_idx = int(cid_str) % num_clients
+        org_key = org_keys[cid_idx]
+
+        if mock_model or model_type == "cnn":
+            if model_type == "cnn":
+                client_model = create_model(model_type="cnn")
+                from torch.utils.data import TensorDataset
+                dummy_ds = TensorDataset(torch.randn(20, 3, 32, 32), torch.randint(0, 10, (20,)))
+                train_loader = DataLoader(dummy_ds, batch_size=batch_size)
+                test_loader = DataLoader(dummy_ds, batch_size=batch_size)
+            else:
+                from model.llm_model import MockLLMModel
+                client_model = MockLLMModel()
+                train_loader = client_datasets[org_key]["train"]
+                test_loader = client_datasets[org_key]["test"]
+
+        else:
+            client_model = apply_lora_to_model(base_model, r=8)
+            train_loader = client_datasets[org_key]["train"]
+            test_loader = client_datasets[org_key]["test"]
+
+        client = FederixClient(
+            cid=f"org_{org_key}",
+            model=client_model,
+            train_loader=train_loader,
+            test_loader=test_loader,
+            config=config,
+        )
+        return client.to_client()
+
+    # Launch simulation
+    history = fl.simulation.start_simulation(
+        client_fn=client_fn,
+        num_clients=num_clients,
+        config=fl.server.ServerConfig(num_rounds=num_rounds),
+        strategy=strategy,
+    )
+
+    logger.info("FL Simulation completed successfully")
+    return history

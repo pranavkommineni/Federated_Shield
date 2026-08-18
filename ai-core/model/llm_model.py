@@ -107,3 +107,36 @@ def set_lora_parameters(peft_model, parameters: list[np.ndarray]) -> None:
     params_dict = zip(state_dict.keys(), parameters)
     new_state_dict = OrderedDict({k: torch.tensor(v) for k, v in params_dict})
     set_peft_model_state_dict(peft_model, new_state_dict)
+
+
+class MockLLMModel(torch.nn.Module):
+    """Fast linear mock model simulating Causal LM behavior for unit tests & simulation."""
+    def __init__(self):
+        super().__init__()
+        self.q_proj = torch.nn.Linear(16, 16)
+        self.v_proj = torch.nn.Linear(16, 16)
+
+    def forward(self, input_ids=None, attention_mask=None, labels=None):
+        dummy_input = torch.randn(1, 16)
+        out = self.q_proj(dummy_input) + self.v_proj(dummy_input)
+        loss = out.sum() * 0.0 + torch.tensor(0.5, requires_grad=True)
+
+        class Output:
+            pass
+        res = Output()
+        res.loss = loss
+        return res
+
+
+class DummyTokenizer:
+    """Mock tokenizer for fast testing without downloading model weights."""
+    def __init__(self):
+        self.pad_token = "<pad>"
+        self.eos_token = "<eos>"
+
+    def __call__(self, text, truncation=True, max_length=512, padding="max_length", return_tensors="pt"):
+        return {
+            "input_ids": torch.randint(1, 1000, (1, max_length)),
+            "attention_mask": torch.ones((1, max_length), dtype=torch.long),
+        }
+

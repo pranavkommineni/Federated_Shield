@@ -40,16 +40,43 @@ class FederixNet(nn.Module):
         return x
 
 def create_model(
+    model_type: str = "cnn",
+    model_name_or_path: str = "Qwen/Qwen2.5-3B-Instruct",
+    r: int = 8,
+    lora_alpha: int = 16,
+    load_in_4bit: bool = True,
     in_channels: int = 3,
     num_classes: int = 10,
     hidden_dim: int = 128,
     dropout_rate: float = 0.25,
-) -> FederixNet:
-    """Instantiate and return the FederixNet model."""
+) -> nn.Module:
+    """
+    Instantiate and return either Qwen2.5-3B + LoRA or CNN FederixNet model.
+    """
+    if model_type.lower() in ("qwen", "llm", "lora"):
+        try:
+            from model.llm_model import load_qwen_model_and_tokenizer, apply_lora_to_model
+            base_model, _ = load_qwen_model_and_tokenizer(
+                model_name_or_path=model_name_or_path,
+                load_in_4bit=load_in_4bit,
+            )
+            peft_model = apply_lora_to_model(
+                base_model,
+                r=r,
+                lora_alpha=lora_alpha,
+                target_modules=["q_proj", "v_proj"],
+            )
+            return peft_model
+        except ImportError:
+            from model.llm_model import MockLLMModel
+            return MockLLMModel()
+
     return FederixNet(
         in_channels=in_channels,
         num_classes=num_classes,
         hidden_dim=hidden_dim,
         dropout_rate=dropout_rate,
     )
+
+
 
