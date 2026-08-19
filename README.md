@@ -1,45 +1,59 @@
-# Federix
+<p align="center">
+  <img src="https://img.shields.io/badge/🛡️-Federix-6366f1?style=for-the-badge&labelColor=0f172a" alt="Federix" height="40"/>
+</p>
 
-A multi-organization **Federated Learning (FL)** platform that trains a shared global AI model across independent organizations — without any organization's raw data ever leaving its own infrastructure. Privacy is enforced through **Secure Aggregation** and **Differential Privacy**, with full auditability and a production model-serving pipeline.
+<h1 align="center">Federix</h1>
+<h3 align="center">🔒 Multi-Organization Federated Learning with Privacy-Preserving AI</h3>
+
+<p align="center">
+  <em>Train a shared global AI model across independent organizations — without any raw data ever leaving its own infrastructure.</em>
+  <br />
+  Privacy enforced through <strong>Secure Aggregation</strong> and <strong>Differential Privacy</strong>, with full auditability and a production model-serving pipeline.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/FastAPI-Backend-009688?style=flat-square&logo=fastapi&logoColor=white" alt="FastAPI"/>
+  <img src="https://img.shields.io/badge/Flower-FL_Orchestration-FF6F61?style=flat-square" alt="Flower"/>
+  <img src="https://img.shields.io/badge/PyTorch-Training-EE4C2C?style=flat-square&logo=pytorch&logoColor=white" alt="PyTorch"/>
+  <img src="https://img.shields.io/badge/PostgreSQL-Storage-4169E1?style=flat-square&logo=postgresql&logoColor=white" alt="PostgreSQL"/>
+  <img src="https://img.shields.io/badge/Redis-Cache-DC382D?style=flat-square&logo=redis&logoColor=white" alt="Redis"/>
+  <img src="https://img.shields.io/badge/React-Frontend-61dafb?style=flat-square&logo=react&logoColor=white" alt="React"/>
+  <img src="https://img.shields.io/badge/Docker-Deploy-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker"/>
+  <img src="https://img.shields.io/badge/License-MIT-yellow?style=flat-square" alt="License"/>
+</p>
+
+<p align="center">
+  <a href="#-overview">Overview</a> •
+  <a href="#-architecture">Architecture</a> •
+  <a href="#-core-components">Components</a> •
+  <a href="#-data-flow">Data Flow</a> •
+  <a href="#-tech-stack">Tech Stack</a> •
+  <a href="#-getting-started">Getting Started</a> •
+  <a href="#-privacy--security">Privacy</a> •
+  <a href="#-deployment">Deployment</a>
+</p>
 
 ---
 
-## Table of Contents
-
-- [Overview](#overview)
-- [Architecture](#architecture)
-- [Repository Structure](#repository-structure)
-- [Core Components](#core-components)
-- [Data Flow](#data-flow)
-- [Tech Stack](#tech-stack)
-- [Getting Started](#getting-started)
-- [Configuration](#configuration)
-- [Running a Federated Training Round](#running-a-federated-training-round)
-- [Privacy & Security](#privacy--security)
-- [Monitoring & Audit](#monitoring--audit)
-- [Model Serving / Inference](#model-serving--inference)
-- [Contracts (Cross-Team Interfaces)](#contracts-cross-team-interfaces)
-- [Team Ownership](#team-ownership)
-- [Testing](#testing)
-- [Deployment](#deployment)
-- [Contributing](#contributing)
-- [License](#license)
+> 🎯 **Mission:** Enable collaborative AI training across organizational boundaries while guaranteeing that no organization's private data is ever exposed — enforced by cryptographic and statistical privacy mechanisms.
 
 ---
 
-## Overview
+## 🌐 Overview
 
 Traditional machine learning requires pooling everyone's data into one place. Federix avoids that entirely using **Federated Learning**: each participating organization trains a copy of a shared model on its own private data, and only the resulting **model updates** (never the raw data) are sent to a central server for aggregation into an improved **Global Model**.
 
 The project is organized around three functional teams, unified by shared **contracts** (interfaces/schemas) so each team can build independently against a stable API:
 
-- **Team A — AI Core**: the model itself, local training, and the Flower-based FL client/server logic.
-- **Team B — Privacy & Security**: Secure Aggregation, Differential Privacy, encryption, and credential/validation security.
-- **Team C — Platform**: the FastAPI backend, frontend admin/org panels, and database layer.
+| Team | Directory | Responsibility |
+|------|-----------|---------------|
+| **🤖 Team A — AI Core** | `team-a-ai-core/` | Model architecture, local training, Flower-based FL client/server |
+| **🔐 Team B — Privacy & Security** | `team-b-privacy-security/` | Secure Aggregation, Differential Privacy, encryption, credentials |
+| **🖥️ Team C — Platform** | `team-c-platform/` | FastAPI backend, frontend admin/org panels, database layer |
 
 ---
 
-## Architecture
+## 🏗️ Architecture
 
 ```
                          ┌───────────────────────────┐
@@ -114,7 +128,7 @@ The project is organized around three functional teams, unified by shared **cont
 
 ---
 
-## Repository Structure
+## 📁 Repository Structure
 
 ```
 federix/
@@ -220,41 +234,85 @@ federix/
 
 ---
 
-## Core Components
+## ⚙️ Core Components
 
-### System Admin Panel (`team-c-platform/frontend`)
-Platform-level control surface for super-admins: manage organizations/nodes, control FL round lifecycle, monitor training & aggregation, manage model versions, configure privacy/security, view audit logs.
+### 🖥️ System Admin Panel
+`team-c-platform/frontend`
 
-### FastAPI Backend (`team-c-platform/backend`)
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Organization Management** | Manage organizations and nodes | ✅ Built |
+| **FL Round Control** | Start/stop/monitor FL round lifecycle | ✅ Built |
+| **Model Management** | Version, promote, rollback models | ✅ Built |
+| **Security Config** | Configure privacy/security parameters | ✅ Built |
+| **Audit Logs** | View full audit trail | ✅ Built |
+
+---
+
+### 🌐 FastAPI Backend
+`team-c-platform/backend`
+
 Central API gateway: JWT authentication, RBAC, organization & node management, training control APIs, and metrics/reporting APIs. Persists to **PostgreSQL** (durable system of record) and **Redis** (live round state, metrics, caching).
 
-### Flower FL Server & Client (`team-a-ai-core/fl`)
+---
+
+### 🌸 Flower FL Server & Client
+`team-a-ai-core/fl`
+
 Orchestrates the FL lifecycle: starts/stops rounds, distributes the global model, collects local updates, coordinates participants, tracks round status. `strategy.py` is where Secure Aggregation and Differential Privacy hooks plug into the aggregation step.
 
-### Organization Training Node (`team-a-ai-core/training_node`, `training/`, `data/`)
+---
+
+### 🏢 Organization Training Node
+`team-a-ai-core/training_node`, `training/`, `data/`
+
 Deployable client run by each organization: loads the org's **Private Data** (never leaves the org), partitions/prepares it (including non-IID handling), trains the received global model locally, evaluates it, and returns only the resulting model update.
 
-### Secure Aggregation (`team-b-privacy-security/secure_aggregation`)
+---
+
+### 🔒 Secure Aggregation
+`team-b-privacy-security/secure_aggregation`
+
 Masks each organization's update, aggregates them so no single contribution is ever visible in isolation, and handles participant dropout gracefully.
 
-### Differential Privacy (`team-b-privacy-security/differential_privacy`)
+---
+
+### 📊 Differential Privacy
+`team-b-privacy-security/differential_privacy`
+
 Runs immediately after Secure Aggregation: clips update magnitudes, adds calibrated Gaussian noise, and tracks the cumulative privacy budget (ε/δ) across rounds via the accountant module.
 
-### Security (`team-b-privacy-security/security`)
+---
+
+### 🔑 Security
+`team-b-privacy-security/security`
+
 Encryption for data in transit/at rest, credential management, and input/update validation across the platform.
 
-### Global Model Store (`team-a-ai-core/model` + `team-c-platform/database`)
+---
+
+### 💾 Global Model Store
+`team-a-ai-core/model` + `team-c-platform/database`
+
 Versioned model storage (v1, v2, v3, …) with rollback support — the source of truth distributed each round and used for serving.
 
-### Model Serving API & Prediction Engine (`team-c-platform/backend` + `team-a-ai-core/model`)
+---
+
+### 🚀 Model Serving API & Prediction Engine
+`team-c-platform/backend` + `team-a-ai-core/model`
+
 Exposes an authenticated inference endpoint, loads the current global model version, and returns predictions to end users of each organization.
 
-### Monitoring & Audit (`team-c-platform/backend`, cross-cutting)
+---
+
+### 📈 Monitoring & Audit
+`team-c-platform/backend`, cross-cutting
+
 Training logs, round/aggregation status, accuracy/loss, participant activity, privacy metrics (ε/δ spend), and security events — all surfaced through the Metrics & Reporting APIs.
 
 ---
 
-## Data Flow
+## 🔄 Data Flow
 
 1. A **System Admin** starts a federated learning round via the platform.
 2. The **Flower server** (`team-a-ai-core/fl/server.py`) pulls the current model from the **Global Model Store** and distributes it to each org's **Flower client**.
@@ -268,32 +326,32 @@ Training logs, round/aggregation status, accuracy/loss, participant activity, pr
 
 ---
 
-## Tech Stack
+## 🛠️ Tech Stack
 
-| Layer                   | Technology                                    |
-| ----------------------- | --------------------------------------------- |
-| Backend API             | FastAPI (Python)                              |
-| FL Orchestration        | Flower                                        |
-| Local Model Training    | PyTorch / TensorFlow                          |
-| Relational Storage      | PostgreSQL                                    |
-| Cache / Real-time State | Redis                                         |
-| Differential Privacy    | Opacus (PyTorch) / TensorFlow Privacy         |
-| Auth                    | JWT                                           |
-| Frontend                | React/TypeScript (`team-c-platform/frontend`) |
-| Containerization        | Docker, Docker Compose, Kubernetes            |
+| Layer | Technology | Badge |
+|-------|-----------|-------|
+| Backend API | FastAPI (Python) | ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white) |
+| FL Orchestration | Flower | ![Flower](https://img.shields.io/badge/Flower-FF6F61?style=flat-square) |
+| Local Model Training | PyTorch / TensorFlow | ![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?style=flat-square&logo=pytorch&logoColor=white) |
+| Relational Storage | PostgreSQL | ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white) |
+| Cache / Real-time State | Redis | ![Redis](https://img.shields.io/badge/Redis-DC382D?style=flat-square&logo=redis&logoColor=white) |
+| Differential Privacy | Opacus (PyTorch) / TensorFlow Privacy | ![Opacus](https://img.shields.io/badge/Opacus-7B1FA2?style=flat-square) |
+| Auth | JWT | ![JWT](https://img.shields.io/badge/JWT-000000?style=flat-square&logo=jsonwebtokens&logoColor=white) |
+| Frontend | React/TypeScript | ![React](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black) |
+| Containerization | Docker, Docker Compose, Kubernetes | ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white) |
 
 ---
 
-## Getting Started
+## 🚀 Getting Started
 
-### Prerequisites
+### 📋 Prerequisites
 - Python 3.10+
 - Node.js 18+ (for `team-c-platform/frontend`)
 - Docker & Docker Compose
 - PostgreSQL 14+
 - Redis 6+
 
-### Clone and Install
+### 📥 Clone and Install
 
 ```bash
 git clone https://github.com/<your-org>/federix.git
@@ -315,7 +373,7 @@ npm install
 cd ../../..
 ```
 
-### Environment Setup
+### 🔧 Environment Setup
 
 ```bash
 cp .env.example .env
@@ -339,7 +397,7 @@ DP_TARGET_EPSILON=3.0
 DP_TARGET_DELTA=0.00001
 ```
 
-### Run Everything with Docker Compose
+### 🐳 Run Everything with Docker Compose
 
 ```bash
 docker-compose up --build
@@ -347,7 +405,7 @@ docker-compose up --build
 
 This starts the backend, database, cache, FL server, and serving API as defined in `docker-compose.yml`. For per-service Dockerfiles and Kubernetes manifests, see `deployment/`.
 
-### Run Components Individually
+### ▶️ Run Components Individually
 
 ```bash
 # Backend API
@@ -365,21 +423,21 @@ python team-a-ai-core/training_node/node.py --org-id=org_a --server=localhost:80
 
 ---
 
-## Configuration
+## ⚙️ Configuration
 
-| Parameter             | Description                                  | Default |
-| --------------------- | -------------------------------------------- | ------- |
-| `MIN_FIT_CLIENTS`     | Minimum organizations required per round     | `3`     |
-| `NUM_ROUNDS`          | Total number of FL rounds to run             | `50`    |
-| `DP_CLIP_NORM`        | Max L2 norm per update before noising        | `1.0`   |
-| `DP_NOISE_MULTIPLIER` | Gaussian noise scale (higher = more private) | `1.1`   |
-| `DP_TARGET_EPSILON`   | Total privacy budget for training lifetime   | `3.0`   |
-| `DP_TARGET_DELTA`     | Failure probability bound                    | `1e-5`  |
-| `JWT_EXPIRY`          | Access token lifetime                        | `1h`    |
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `MIN_FIT_CLIENTS` | Minimum organizations required per round | `3` |
+| `NUM_ROUNDS` | Total number of FL rounds to run | `50` |
+| `DP_CLIP_NORM` | Max L2 norm per update before noising | `1.0` |
+| `DP_NOISE_MULTIPLIER` | Gaussian noise scale (higher = more private) | `1.1` |
+| `DP_TARGET_EPSILON` | Total privacy budget for training lifetime | `3.0` |
+| `DP_TARGET_DELTA` | Failure probability bound | `1e-5` |
+| `JWT_EXPIRY` | Access token lifetime | `1h` |
 
 ---
 
-## Running a Federated Training Round
+## 🏋️ Running a Federated Training Round
 
 1. **Register organizations and nodes** via the System Admin Panel.
 2. **Start each organization's training node** (`team-a-ai-core/training_node/node.py`) so it connects to the Flower server and awaits the next round.
@@ -395,35 +453,37 @@ python team-a-ai-core/training_node/node.py --org-id=org_a --server=localhost:80
 
 ---
 
-## Privacy & Security
+## 🔐 Privacy & Security
 
-- **Data locality** — raw data never leaves an organization's infrastructure; only model updates are transmitted.
-- **Secure Aggregation** (`team-b-privacy-security/secure_aggregation`) — the server never observes any single organization's update in isolation, only the masked combined aggregate.
-- **Differential Privacy** (`team-b-privacy-security/differential_privacy`) — clipping + calibrated Gaussian noise applied to the aggregate, giving a formal (ε, δ) guarantee against membership inference, model inversion, and gradient leakage attacks.
-- **Privacy budget tracking** — cumulative ε/δ is tracked every round via `accountant.py` and surfaced in Monitoring & Audit; training halts once the configured budget is exhausted.
-- **Encryption & credentials** (`team-b-privacy-security/security`) — encryption utilities and credential/secret handling across the platform.
-- **RBAC & JWT auth** — all API access is scoped by role (system admin / org admin / org user).
-- **Audit logging** — every administrative action, training round, and aggregation event is logged for compliance.
+| Mechanism | Description |
+|-----------|-------------|
+| **🏠 Data Locality** | Raw data never leaves an organization's infrastructure; only model updates are transmitted |
+| **🎭 Secure Aggregation** | The server never observes any single organization's update in isolation, only the masked combined aggregate |
+| **📊 Differential Privacy** | Clipping + calibrated Gaussian noise applied to the aggregate, giving a formal (ε, δ) guarantee against membership inference, model inversion, and gradient leakage attacks |
+| **📒 Privacy Budget Tracking** | Cumulative ε/δ is tracked every round via `accountant.py` and surfaced in Monitoring & Audit; training halts once the configured budget is exhausted |
+| **🔑 Encryption & Credentials** | Encryption utilities and credential/secret handling across the platform |
+| **🛂 RBAC & JWT Auth** | All API access is scoped by role (system admin / org admin / org user) |
+| **📝 Audit Logging** | Every administrative action, training round, and aggregation event is logged for compliance |
 
 Full theory and implementation notes live in `docs/privacy/`.
 
 ---
 
-## Monitoring & Audit
+## 📈 Monitoring & Audit
 
 Tracked per round and system-wide:
-- Training logs and round status
-- Aggregation status
-- Model accuracy / loss
-- Participant activity
-- Privacy metrics (ε / δ spent)
-- Security events
+- 📋 Training logs and round status
+- 🔄 Aggregation status
+- 📊 Model accuracy / loss
+- 👥 Participant activity
+- 🔒 Privacy metrics (ε / δ spent)
+- 🚨 Security events
 
 All metrics are queryable via the Metrics & Reporting APIs and viewable in the System Admin Panel.
 
 ---
 
-## Model Serving / Inference
+## 🔮 Model Serving / Inference
 
 Once a global model version is finalized, the **Model Serving API** exposes an authenticated inference endpoint and the **Prediction Engine** loads that version's weights to process requests:
 
@@ -436,35 +496,35 @@ curl -X POST http://localhost:8000/api/predict \
 
 ---
 
-## Contracts (Cross-Team Interfaces)
+## 📜 Contracts (Cross-Team Interfaces)
 
 The `contracts/` directory defines the shared interfaces all three teams build against, so each team can develop independently without breaking integration:
 
-| Contract                                  | Defines                                              |
-| ----------------------------------------- | ---------------------------------------------------- |
-| `contracts/model/model_schema.py`         | Model metadata, versioning, and serialization format |
-| `contracts/training/training_schema.py`   | Training round request/response structure            |
-| `contracts/privacy/aggregation_schema.py` | Secure aggregation & DP parameter structure          |
-| `contracts/api/openapi.yaml`              | Full REST API contract for the backend               |
+| Contract | Defines |
+|----------|---------|
+| `contracts/model/model_schema.py` | Model metadata, versioning, and serialization format |
+| `contracts/training/training_schema.py` | Training round request/response structure |
+| `contracts/privacy/aggregation_schema.py` | Secure aggregation & DP parameter structure |
+| `contracts/api/openapi.yaml` | Full REST API contract for the backend |
 
-Any change to a contract should be reviewed by all three teams before merging, since it's a breaking-change surface across `team-a-ai-core`, `team-b-privacy-security`, and `team-c-platform`.
-
----
-
-## Team Ownership
-
-| Directory                  | Owner                   | Responsibility                                              |
-| -------------------------- | ----------------------- | ----------------------------------------------------------- |
-| `team-a-ai-core/`          | AI Core Team            | Model architecture, local training, FL client/server        |
-| `team-b-privacy-security/` | Privacy & Security Team | Secure Aggregation, Differential Privacy, platform security |
-| `team-c-platform/`         | Platform Team           | Backend API, frontend, database                             |
-| `contracts/`               | Shared / Tech Leads     | Cross-team interface definitions                            |
-| `integration/`             | Shared                  | End-to-end integration testing across all teams             |
-| `deployment/`              | Platform Team           | Docker/Kubernetes deployment configuration                  |
+> ⚠️ Any change to a contract should be reviewed by all three teams before merging, since it's a breaking-change surface across `team-a-ai-core`, `team-b-privacy-security`, and `team-c-platform`.
 
 ---
 
-## Testing
+## 👥 Team Ownership
+
+| Directory | Owner | Responsibility |
+|-----------|-------|---------------|
+| `team-a-ai-core/` | 🤖 AI Core Team | Model architecture, local training, FL client/server |
+| `team-b-privacy-security/` | 🔐 Privacy & Security Team | Secure Aggregation, Differential Privacy, platform security |
+| `team-c-platform/` | 🖥️ Platform Team | Backend API, frontend, database |
+| `contracts/` | 🤝 Shared / Tech Leads | Cross-team interface definitions |
+| `integration/` | 🤝 Shared | End-to-end integration testing across all teams |
+| `deployment/` | 🖥️ Platform Team | Docker/Kubernetes deployment configuration |
+
+---
+
+## 🧪 Testing
 
 Each team maintains its own unit tests:
 
@@ -490,7 +550,7 @@ bash integration/scripts/run_e2e.sh
 
 ---
 
-## Deployment
+## 🚢 Deployment
 
 - **Docker**: per-service Dockerfiles in `deployment/docker/`, orchestrated locally via the root `docker-compose.yml`.
 - **Kubernetes**: manifests/Helm charts in `deployment/kubernetes/` for staging/production clusters.
@@ -501,7 +561,7 @@ kubectl apply -f deployment/kubernetes/
 
 ---
 
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository and create a feature branch from the relevant team directory.
 2. Follow existing code style and add tests under the appropriate `tests/` folder.
@@ -511,6 +571,6 @@ kubectl apply -f deployment/kubernetes/
 
 ---
 
-## License
+## 📄 License
 
 See [`LICENSE`](./LICENSE).
