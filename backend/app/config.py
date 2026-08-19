@@ -46,7 +46,23 @@ class Settings(BaseSettings):
             return [origin.strip() for origin in value.split(",")]
         return value
 
-    # Simulation settings for Training Engine
+    # FL Runtime Mode: "real" (Qwen+LoRA via Flower), "mock" (MockLLM, fast),
+    #                  "simulation_only" (fake curves for frontend-only dev)
+    FL_MODE: str = "real"
+    FL_NUM_CLIENTS: int = 4
+    FL_USE_SECURE_AGG: bool = False
+    FL_MODEL_TYPE: str = "qwen"
+
+    @field_validator("FL_MODE", mode="before")
+    @classmethod
+    def validate_fl_mode(cls, value: str) -> str:
+        allowed = {"real", "mock", "simulation_only"}
+        if value not in allowed:
+            raise ValueError(f"FL_MODE must be one of {allowed}, got '{value}'")
+        return value
+
+    # Simulation settings for Training Engine (used by simulation_only mode
+    # and for DP epsilon calculation in all modes)
     DEFAULT_ROUNDS: int = 5
     SIMULATED_ROUND_DURATION_SEC: float = 2.5
     BASE_ACCURACY: float = 0.35

@@ -33,6 +33,8 @@ export interface TrainingStartPayload {
   maxEpsilon?: number;
 }
 
+export type StartTrainingPayload = TrainingStartPayload;
+
 export interface WebSocketMetricEvent {
   event: 'status_update' | 'training_started' | 'round_complete' | 'training_completed' | 'training_stopped' | 'error' | 'pong';
   run_id?: string;
